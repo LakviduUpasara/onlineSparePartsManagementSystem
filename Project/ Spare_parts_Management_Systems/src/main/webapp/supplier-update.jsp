@@ -1,0 +1,41 @@
+<%@ page import="com.spareparts.model.Supplier" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Update Supplier</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Update Supplier Details</h2>
+        <%
+            Supplier supplier = (Supplier) request.getAttribute("supplier");
+            if (supplier != null) {
+        %>
+        <form action="supplier-update" method="post">
+            <input type="hidden" name="supplierId" value="<%= supplier.getSupplierID() %>">
+
+            <div class="mb-3">
+                <label for="supplierName" class="form-label">Name</label>
+                <input type="text" class="form-control" name="supplierName" value="<%= supplier.getSupplierName() %>" required>
+            </div>
+            <div class="mb-3">
+                <label for="contactNumber" class="form-label">Contact Number</label>
+                <input type="text" class="form-control" name="contactNumber" value="<%= supplier.getContactNumber() %>" required>
+            </div>
+            <div class="mb-3">
+                <label for="address" class="form-label">Address</label>
+                <textarea class="form-control" name="address" required><%= supplier.getAddress() %></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Update Supplier</button>
+            <a href="supplier-list" class="btn btn-secondary">Cancel</a>
+        </form>
+        <% } else { %>
+            <div class="alert alert-danger">Supplier not found.</div>
+        <% } %>
+    </div>
+</body>
+</html>

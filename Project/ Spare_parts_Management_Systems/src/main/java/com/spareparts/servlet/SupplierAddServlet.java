@@ -1,0 +1,45 @@
+package com.spareparts.servlet;
+
+import com.spareparts.controller.SupplierController;
+import com.spareparts.model.Supplier;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+import java.io.IOException;
+
+@WebServlet("/supplier-add")
+public class SupplierAddServlet extends HttpServlet {
+ 
+
+ 
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+    	
+    
+    	
+        String name = request.getParameter("supplierName");
+        String contact = request.getParameter("contactNumber");
+        String address = request.getParameter("address");
+
+        
+        
+    	boolean isTrue  =SupplierController.addSupplier(name, contact, address) ;
+
+    		if (isTrue == true )
+    		{
+    			String alterMessage = "data insert successful";
+    			response.getWriter().println("<script> alert('"+alterMessage+"'); window.location.href='supplier-list'</script>");
+
+    		}
+    		else
+    		{
+
+    			String alterMessage = "data insert Unsuccessful";
+    			response.getWriter().println("<script> alert('"+alterMessage+"'); window.location.href='supplier-list'</script>");
+
+    		}
+     
+    }
+}
