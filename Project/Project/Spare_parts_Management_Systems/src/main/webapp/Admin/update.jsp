@@ -1,0 +1,233 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.util.*, com.spareparts.model.Supplier" %>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - Full Trade Support</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #0d0b56;
+      color: white;
+      position: fixed;
+      width: 240px;
+      padding-top: 20px;
+    }
+
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      padding: 12px 20px;
+      font-size: 16px;
+      transition: background 0.3s ease;
+    }
+
+    .sidebar a:hover {
+      background-color: #111a72;
+      border-left: 4px solid #ffffff;
+      padding-left: 16px;
+    }
+
+    .main-content {
+      margin-left: 240px;
+      background-color: #f8f9fa;
+    }
+
+    .dashboard-content {
+      padding: 40px;
+    }
+
+    .navbar {
+      background-color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .navbar-brand {
+      font-weight: bold;
+      color: #0d0b56 !important;
+    }
+
+    .btn-primary {
+      background-color: #0d0b56 !important;
+      border: none;
+      color: white;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover,
+    .btn-primary:focus {
+      background-color: #111a72 !important;
+      box-shadow: 0 0 0 0.2rem rgba(13, 11, 86, 0.25);
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    input.form-control,
+    select.form-control {
+      border: 1px solid #ccc;
+      transition: border-color 0.2s ease;
+    }
+
+    input.form-control:focus,
+    select.form-control:focus {
+      border-color: #0d0b56;
+      box-shadow: 0 0 0 0.2rem rgba(13, 11, 86, 0.25);
+    }
+
+    .bg-white {
+      background-color: white;
+    }
+
+    .rounded-xl {
+      border-radius: 1rem;
+    }
+
+    .shadow-md {
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .text-blue-600 {
+      color: #0d0b56;
+    }
+  </style>
+</head>
+
+<body>
+
+<%
+  String userRoleSession = (String) session.getAttribute("userRole");
+  String id = request.getParameter("id");
+  String name = request.getParameter("name");
+  String address = request.getParameter("address");
+  String contactnumber = request.getParameter("contactnumber");
+  String email = request.getParameter("email");
+  String password = request.getParameter("password");
+  String userRole = request.getParameter("userRole");
+%>
+
+<div class="sidebar" id="sidebar">
+  <h5 class="text-center fw-bold"><%= userRoleSession != null ? userRoleSession + " Panel" : "Panel" %></h5>
+  <% if ("Manager".equals(userRoleSession) || "Admin".equals(userRoleSession)) { %>
+    <a href="${pageContext.request.contextPath}/dashboard"><i class="fas fa-chart-line me-2"></i> Dashboard</a>
+  <% } %>
+  <a href="${pageContext.request.contextPath}/cashier"><i class="fas fa-cash-register me-2"></i> Cashier</a>
+  <% if ("Admin".equals(userRoleSession) || "Manager".equals(userRoleSession)) { %>
+    <a href="${pageContext.request.contextPath}/GetAllServlet"><i class="fas fa-users me-2"></i> User Management</a>
+  <% } %>
+  <% if (!"Cashier".equals(userRoleSession)) { %>
+    <a href="${pageContext.request.contextPath}/item-list"><i class="fas fa-boxes me-2"></i> Stock Management</a>
+  <% } %>
+  <% if ("Stock Manager".equals(userRoleSession)) { %>
+    <a href="${pageContext.request.contextPath}/order-management"><i class="fas fa-shopping-cart me-2"></i> Order Management</a>
+    <a href="${pageContext.request.contextPath}/item-list"><i class="fas fa-box me-2"></i> Item Management</a>
+  <% } %>
+  <% if ("Admin".equals(userRoleSession) || "Manager".equals(userRoleSession)) { %>
+    <a href="${pageContext.request.contextPath}/supplier-list"><i class="fas fa-truck me-2"></i> Supplier Management</a>
+  <% } %>
+  <a href="#" data-bs-toggle="collapse" data-bs-target="#settingsMenu"><i class="fas fa-gear me-2"></i> Settings</a>
+  <div class="collapse ms-3" id="settingsMenu">
+    <a href="${pageContext.request.contextPath}/profile.jsp" class="d-block mt-1"><i class="fas fa-sliders-h me-2"></i> Profile</a>
+  </div>
+</div>
+
+<div class="main-content w-100">
+  <nav class="navbar navbar-expand-lg navbar-light bg-white px-4 shadow-sm">
+    <a class="navbar-brand fw-bold" href="#">Autoparts Pvt Ltd</a>
+    <div class="ms-auto d-flex align-items-center">
+      <%= session.getAttribute("Name") != null ? session.getAttribute("Name") : "Guest" %>
+      <div class="dropdown ms-3">
+        <a class="btn btn-light dropdown-toggle" href="#" data-bs-toggle="dropdown">
+          <i class="fas fa-user-circle fa-lg"></i>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile.jsp"><i class="fas fa-id-badge me-2"></i> Profile</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="${pageContext.request.contextPath}/LogoutServlet"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard-content">
+    <h2 class="text-xl font-bold mb-4">User Management</h2>
+    <p class="mb-4 text-gray-600">Manage your user below:</p>
+
+    <div class="bg-white rounded-xl shadow-md p-6 max-w-2xl">
+      <h4 class="text-lg font-semibold mb-4 text-blue-600">Update User</h4>
+
+      <form action="${pageContext.request.contextPath}/UpdateServlet" method="post" class="space-y-4">
+        <div>
+          <label class="form-label block mb-1 font-medium">ID</label>
+          <input type="text" name="id" value="<%= id %>" readonly class="form-control bg-gray-100" />
+        </div>
+
+        <div>
+          <label class="form-label block mb-1 font-medium">Name</label>
+          <input type="text" name="name" value="<%= name %>" required class="form-control" />
+        </div>
+
+        <div>
+          <label class="form-label block mb-1 font-medium">Address</label>
+          <input type="text" name="address" value="<%= address %>" required class="form-control" />
+        </div>
+
+        <div>
+          <label class="form-label block mb-1 font-medium">Contact Number</label>
+          <input type="text" name="contactnumber" value="<%= contactnumber %>" required class="form-control" />
+        </div>
+
+        <div>
+          <label class="form-label block mb-1 font-medium">Email</label>
+          <input type="email" name="email" value="<%= email %>" required class="form-control" />
+        </div>
+
+        <div>
+          <label class="form-label block mb-1 font-medium">Password</label>
+          <input type="text" name="password" value="<%= password %>" required class="form-control" />
+        </div>
+
+        <div>
+          <label class="form-label block mb-1 font-medium">User Role</label>
+          <select name="userRole" class="form-control" required>
+            <option value="Cashier" <%= "Cashier".equals(userRole) ? "selected" : "" %>>Cashier</option>
+            <option value="Stock Manager" <%= "Stock Manager".equals(userRole) ? "selected" : "" %>>Stock Manager</option>
+            <option value="Admin" <%= "Admin".equals(userRole) ? "selected" : "" %>>Admin</option>
+            <option value="Manager" <%= "Manager".equals(userRole) ? "selected" : "" %>>Manager</option>
+          </select>
+        </div>
+
+        <div>
+          <button type="submit" class="btn btn-primary w-full">Update User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

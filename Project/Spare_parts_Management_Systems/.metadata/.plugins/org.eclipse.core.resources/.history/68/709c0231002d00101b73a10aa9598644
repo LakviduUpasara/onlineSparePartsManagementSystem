@@ -1,0 +1,105 @@
+package dao;
+
+import model.Supplier;
+import cache.SupplierCache;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class SupplierDAO {
+    private static final String JDBC_URL = "jdbc:mysql://localhost:3306/SparePartsManagement_System?user=root&password=LAkvidu@2001";
+    private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
+
+    private Connection getConnection() throws SQLException, ClassNotFoundException {
+        Class.forName(DRIVER);
+        return DriverManager.getConnection(JDBC_URL);
+    }
+
+    // Create
+    public void addSupplier(Supplier supplier) throws SQLException, ClassNotFoundException {
+        String sql = "INSERT INTO Supplier_Details (SupplierName, ContactNumber, Address) VALUES (?, ?, ?)";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, supplier.getSupplierName());
+            stmt.setString(2, supplier.getContactNumber());
+            stmt.setString(3, supplier.getAddress());
+            stmt.executeUpdate();
+
+            // Get generated SupplierID
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                supplier.setSupplierID(rs.getInt(1));
+                SupplierCache.put(supplier); // Cache the new supplier
+            }
+        }
+    }
+
+    // Read All
+    public List<Supplier> getAllSuppliers() throws SQLException, ClassNotFoundException {
+        List<Supplier> suppliers = new ArrayList<>();
+        String sql = "SELECT * FROM Supplier_Details";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Supplier supplier = new Supplier(
+                    rs.getInt("SupplierID"),
+                    rs.getString("SupplierName"),
+                    rs.getString("ContactNumber"),
+                    rs.getString("Address")
+                );
+                suppliers.add(supplier);
+                SupplierCache.put(supplier); // Update cache
+            }
+        }
+        return suppliers;
+    }
+
+    // Read by ID
+    public Supplier getSupplierById(int supplierID) throws SQLException, ClassNotFoundException {
+        // Check cache first
+        Supplier cachedSupplier = SupplierCache.get(supplierID);
+        if (cachedSupplier != null) {
+            return cachedSupplier;
+        }
+
+        String sql = "SELECT * FROM Supplier_Details WHERE SupplierID = ?";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, supplierID);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Supplier supplier = new Supplier(
+                        rs.getInt("SupplierID"),
+                        rs.getString("SupplierName"),
+                        rs.getString("ContactNumber"),
+                        rs.getString("Address")
+                    );
+                    SupplierCache.put(supplier); // Cache the supplier
+                    return supplier;
+                }
+            }
+        }
+        return null;
+    }
+
+    // Update
+    public void updateSupplier(Supplier supplier) throws SQLException, ClassNotFoundException {
+        String sql = "UPDATE Supplier_Details SET SupplierName = ?, ContactNumber = ?, Address = ? WHERE SupplierID = ?";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, supplier.getSupplierName());
+            stmt.setString(2, supplier.getContactNumber());
+            stmt.setString(3, supplier.getAddress());
+            stmt.setInt(4, supplier.getSupplierID());
+            stmt.executeUpdate();
+            SupplierCache.put(supplier); // Update cache
+        }
+    }
+
+    // Delete
+    public void deleteSupplier(int supplierID) throws SQLException, ClassNotFoundException {
+        String sql = "DELETE FROM Supplier_Details WHERE SupplierID = ?";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, supplierID);
+            stmt.executeUpdate();
+            SupplierCache.clear(); // Clear cache to ensure consistency
+        }
+    }
+}

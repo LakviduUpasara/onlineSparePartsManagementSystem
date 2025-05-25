@@ -1,0 +1,198 @@
+package com.spareparts.servlet;
+
+import com.spareparts.controller.OrderController;
+import com.spareparts.dao.CustomerDAO;
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.dao.ItemDAOImpl;
+import com.spareparts.dao.OrderDAO;
+import com.spareparts.model.OrderDetail;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
+@WebServlet(urlPatterns = {"/order-management", "/order-create", "/order-update", "/order-delete", "/order-details"})
+public class OrderServlet extends HttpServlet {
+    private static final Logger LOGGER = Logger.getLogger(OrderServlet.class.getName());
+    private OrderController orderController;
+    private ItemDAO itemDAO;
+    private CustomerDAO customerDAO;
+
+    @Override
+    public void init() throws ServletException {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            orderController = new OrderController(new OrderDAO(), new ItemDAOImpl());
+            itemDAO = new ItemDAOImpl();
+            customerDAO = new CustomerDAO();
+            LOGGER.info("OrderServlet initialized successfully");
+        } catch (ClassNotFoundException e) {
+            LOGGER.severe("MySQL JDBC Driver not found: " + e.getMessage());
+            throw new ServletException("Failed to load MySQL JDBC Driver", e);
+        } catch (Exception e) {
+            LOGGER.severe("Initialization failed: " + e.getMessage());
+            throw new ServletException("Failed to initialize servlet", e);
+        }
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String path = request.getServletPath();
+        response.setContentType("text/html; charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        try {
+            switch (path) {
+                case "/order-management":
+                    List<Item> items = itemDAO.getAllItems();
+                    List<Customer> customers = customerDAO.getAllCustomers();
+                    LOGGER.info("Fetched " + items.size() + " items and " + customers.size() + " customers for order-management");
+                    request.setAttribute("orderList", orderController.getAllOrders());
+                    request.setAttribute("itemList", items);
+                    request.setAttribute("customerList", customers);
+                    request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+                    break;
+                case "/order-details":
+                case "/order-update":
+                    String orderIdStr = request.getParameter("id");
+                    if (orderIdStr == null || orderIdStr.trim().isEmpty()) {
+                        out.println("<script>alert('Error: Order ID is missing.'); window.location.href='order-management';</script>");
+                        return;
+                    }
+                    int orderId = Integer.parseInt(orderIdStr);
+                    request.setAttribute("order", orderController.getOrderById(orderId));
+                    request.setAttribute("orderDetails", orderController.getOrderDetails(orderId));
+                    request.setAttribute("itemList", itemDAO.getAllItems());
+                    request.setAttribute("customerList", customerDAO.getAllCustomers());
+                    request.getRequestDispatcher(path.equals("/order-details") ? "/OrderMangments/order-details.jsp" : "/OrderMangments/order-update.jsp").forward(request, response);
+                    break;
+                case "/order-delete":
+                    orderIdStr = request.getParameter("id");
+                    if (orderIdStr == null || orderIdStr.trim().isEmpty()) {
+                        out.println("<script>alert('Error: Order ID is missing.'); window.location.href='order-management';</script>");
+                        return;
+                    }
+                    orderId = Integer.parseInt(orderIdStr);
+                    boolean deleted = orderController.deleteOrder(orderId, request);
+                    out.println("<script>alert('" + (deleted ? "Order deleted successfully." : "Error: Failed to delete order.") + "'); window.location.href='order-management';</script>");
+                    break;
+                default:
+                    out.println("<script>alert('Error: Page not found.'); window.location.href='order-management';</script>");
+            }
+        } catch (SQLException e) {
+            LOGGER.severe("Database error: " + e.getMessage());
+            request.setAttribute("error", "Database error: " + e.getMessage());
+            request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+        } catch (Exception e) {
+            LOGGER.severe("Unexpected error: " + e.getMessage());
+            request.setAttribute("error", "Unexpected error: " + e.getMessage());
+            request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String path = request.getServletPath();
+        response.setContentType("text/html; charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        try {
+            String customerIdStr = request.getParameter("customerId");
+            String discountStr = request.getParameter("discount");
+            String[] itemIds = request.getParameterValues("itemId[]");
+            String[] quantities = request.getParameterValues("quantity[]");
+
+            if (customerIdStr == null || customerIdStr.trim().isEmpty()) {
+                request.setAttribute("error", "Customer is required.");
+                request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+                return;
+            }
+            if (discountStr == null || discountStr.trim().isEmpty()) {
+                request.setAttribute("error", "Discount is required.");
+                request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+                return;
+            }
+            if (itemIds == null || quantities == null || itemIds.length == 0 || itemIds.length != quantities.length) {
+                request.setAttribute("error", "Invalid order items.");
+                request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+                return;
+            }
+
+            int customerId = Integer.parseInt(customerIdStr);
+            double discount = Double.parseDouble(discountStr);
+            if (discount < 0 || discount > 100) {
+                request.setAttribute("error", "Discount must be between 0 and 100.");
+                request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+                return;
+            }
+
+            List<OrderDetail> orderDetails = new ArrayList<>();
+            for (int i = 0; i < itemIds.length; i++) {
+                if (itemIds[i].trim().isEmpty() || quantities[i].trim().isEmpty()) {
+                    request.setAttribute("error", "Item or quantity missing.");
+                    request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+                    return;
+                }
+                OrderDetail detail = new OrderDetail();
+                detail.setItemID(Integer.parseInt(itemIds[i]));
+                int qty = Integer.parseInt(quantities[i]);
+                if (qty <= 0) {
+                    request.setAttribute("error", "Quantity must be positive.");
+                    request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+                    return;
+                }
+                detail.setQuantity(qty);
+                orderDetails.add(detail);
+            }
+
+            boolean success;
+            if (path.equals("/order-create")) {
+                success = orderController.createOrder(customerId, orderDetails, discount, request);
+                request.setAttribute("success", success ? "Order created successfully." : "Failed to create order.");
+                request.setAttribute("itemList", itemDAO.getAllItems());
+                request.setAttribute("customerList", customerDAO.getAllCustomers());
+                request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+            } else if (path.equals("/order-update")) {
+                String orderIdStr = request.getParameter("orderId");
+                if (orderIdStr == null || orderIdStr.trim().isEmpty()) {
+                    request.setAttribute("error", "Order ID is missing.");
+                    request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+                    return;
+                }
+                int orderId = Integer.parseInt(orderIdStr);
+                success = orderController.updateOrder(orderId, customerId, orderDetails, discount, request);
+                request.setAttribute("success", success ? "Order updated successfully." : "Failed to update order.");
+                request.setAttribute("itemList", itemDAO.getAllItems());
+                request.setAttribute("customerList", customerDAO.getAllCustomers());
+                request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+            } else {
+                request.setAttribute("error", "Invalid request path.");
+                request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+            }
+        } catch (NumberFormatException e) {
+            LOGGER.warning("Invalid input format: " + e.getMessage());
+            request.setAttribute("error", "Invalid input format.");
+            request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+        } catch (IllegalArgumentException e) {
+            LOGGER.warning("Validation error: " + e.getMessage());
+            request.setAttribute("error", e.getMessage());
+            request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+        } catch (SQLException e) {
+            LOGGER.severe("Database error: " + e.getMessage());
+            request.setAttribute("error", "Database error: " + e.getMessage());
+            request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+        } catch (Exception e) {
+            LOGGER.severe("Unexpected error: " + e.getMessage());
+            request.setAttribute("error", "Unexpected error: " + e.getMessage());
+            request.getRequestDispatcher("/OrderMangments/order-management.jsp").forward(request, response);
+        }
+    }
+}

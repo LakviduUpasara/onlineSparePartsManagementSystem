@@ -1,0 +1,276 @@
+<%-- web/OrderManagement/order-management.jsp --%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.util.*, com.spareparts.model.Item, com.spareparts.model.Customer, com.spareparts.model.Order" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ page errorPage="/error.jsp" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Full Trade Support - Order Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <link href="${pageContext.request.contextPath}/css/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" integrity="sha512-A8kq5D4Y6Q3u5nF4Osk6M4s3hZcIdvKS0EXVaM3vKL+xnF3l5g2Z+BlI9yGddALf6nWrXg1WXDxK38g/Mq2bCQA==" crossorigin="anonymous">
+  <link href="${pageContext.request.contextPath}/css/fontawesome.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <style>
+    body { display: flex; min-height: 100vh; overflow-x: hidden; }
+    .sidebar { width: 250px; background-color: #001f3f; color: #fff; flex-shrink: 0; padding-top: 1rem; }
+    .sidebar a { display: block; padding: 12px 20px; color: #fff; text-decoration: none; transition: background 0.3s; }
+    .sidebar a:hover { background-color: #003366; }
+    .sidebar h5 { text-align: center; margin-bottom: 1rem; font-weight: bold; }
+    .main-content { flex-grow: 1; background: #f8f9fa; }
+    .navbar { background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .dashboard-content { padding: 2rem; }
+    .custom-header { background-color: #0d0b56; color: white; }
+    .btn-primary { background-color: #0d0b56; border-color: #0d0b56; }
+    .btn-primary:hover { background-color: #003366; border-color: #003366; }
+    .export-btn { background-color: #ffffff; color: #0d0b56; border: 1px solid #0d0b56; }
+    .export-btn:hover { background-color: #0d0b56; color: #ffffff; }
+    .item-image { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
+    .action-btn { padding: 6px 12px; font-size: 0.9rem; min-width: 80px; }
+    .action-btn i { margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h5 class="text-center fw-bold">Admin Panel</h5>
+    <a href="${pageContext.request.contextPath}/dashboard"><i class="fas fa-chart-line me-2"></i> Dashboard</a>
+    <a href="${pageContext.request.contextPath}/GetAllServlet"><i class="fas fa-users me-2"></i> User Management</a>
+    <a href="${pageContext.request.contextPath}/stock-manager"><i class="fas fa-boxes me-2"></i> Stock Manager</a>
+    <a href="${pageContext.request.contextPath}/order-management"><i class="fas fa-shopping-cart me-2"></i> Order Management</a>
+    <a href="${pageContext.request.contextPath}/cashier"><i class="fas fa-cash-register me-2"></i> Cashier</a>
+    <a href="${pageContext.request.contextPath}/item-list"><i class="fas fa-box me-2"></i> Item Management</a>
+    <a href="${pageContext.request.contextPath}/customer-management"><i class="fas fa-user-friends me-2"></i> Customer Management</a>
+    <a href="${pageContext.request.contextPath}/supplier-list"><i class="fas fa-truck me-2"></i> Supplier Management</a>
+    <a href="#"><i class="fas fa-arrow-up-right-from-square me-2"></i> Outgoing Products</a>
+    <a href="#"><i class="fas fa-arrow-down-to-line me-2"></i> Purchase Products</a>
+    <a href="#" data-bs-toggle="collapse" data-bs-target="#settingsMenu"><i class="fas fa-gear me-2"></i> Settings</a>
+    <div class="collapse ms-3" id="settingsMenu">
+      <a href="${pageContext.request.contextPath}/profile.jsp" class="d-block mt-1"><i class="fas fa-id-badge me-2"></i> Profile Settings</a>
+      <a href="${pageContext.request.contextPath}/profile.jsp" class="d-block mt-1"><i class="fas fa-lock me-2"></i> Change Password</a>
+      <a href="#" class="d-block mt-1"><i class="fas fa-sliders-h me-2"></i> System Preferences</a>
+    </div>
+  </div>
+
+  <div class="main-content w-100">
+    <nav class="navbar navbar-expand-lg navbar-light px-4">
+      <a class="navbar-brand fw-bold" href="#">Full Trade Support</a>
+      <div class="ms-auto d-flex align-items-center">
+        <span class="me-3">Welcome, <strong><c:out value="${sessionScope.userName != null ? sessionScope.userName : 'Guest'}" /></strong></span>
+        <div class="dropdown">
+          <a class="btn btn-light dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+            <i class="fas fa-user-circle fa-lg"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile.jsp"><i class="fas fa-id-badge me-2"></i> Profile</a></li>
+            <li><a class="dropdown-item" href="#"><i class="fas fa-cogs me-2"></i> Settings</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="${pageContext.request.contextPath}/LogoutServlet"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="dashboard-content">
+      <h2>Order Management</h2>
+      <p>Create and manage orders below:</p>
+      <c:if test="${not empty requestScope.error}">
+        <div class="alert alert-danger"><c:out value="${requestScope.error}" /></div>
+      </c:if>
+      <c:if test="${not empty requestScope.success}">
+        <div class="alert alert-success"><c:out value="${requestScope.success}" /></div>
+      </c:if>
+
+      <button class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#createOrderModal">Create New Order</button>
+
+      <div class="table-container mt-4">
+        <table class="table table-bordered table-striped" id="order-table">
+          <thead class="custom-header">
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Order Date</th>
+              <th>Total Amount</th>
+              <th>Discount</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <c:choose>
+              <c:when test="${not empty requestScope.orderList}">
+                <c:forEach var="order" items="${requestScope.orderList}">
+                  <tr>
+                    <td><c:out value="${order.orderID}" /></td>
+                    <td><c:out value="${order.customerName != null ? order.customerName : 'N/A'}" /></td>
+                    <td><c:out value="${order.orderDate != null ? order.orderDate : 'N/A'}" /></td>
+                    <td>R<fmt:formatNumber value="${order.totalAmount}" pattern="#,##0.00" /></td>
+                    <td><fmt:formatNumber value="${order.discount}" pattern="#,##0.00" />%</td>
+                    <td>
+                      <div class="d-flex gap-2">
+                        <a href="${pageContext.request.contextPath}/order-details?id=${order.orderID}" class="btn btn-outline-primary action-btn">
+                          <i class="fas fa-print"></i> Print
+                        </a>
+                        <a href="${pageContext.request.contextPath}/order-update?id=${order.orderID}" class="btn btn-outline-warning action-btn">
+                          <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <a href="${pageContext.request.contextPath}/order-delete?id=${order.orderID}" class="btn btn-outline-danger action-btn" onclick="return confirm('Are you sure you want to delete this order?')">
+                          <i class="fas fa-trash"></i> Delete
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                </c:forEach>
+              </c:when>
+              <c:otherwise>
+                <tr>
+                  <td colspan="6" class="text-center">No orders found.</td>
+                </tr>
+              </c:otherwise>
+            </c:choose>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <form action="${pageContext.request.contextPath}/order-create" method="post" class="modal-content" id="createOrderForm">
+            <div class="modal-header">
+              <h5 class="modal-title" id="createOrderModalLabel">Create New Order</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="customerId" class="form-label">Customer</label>
+                <select class="form-control" id="customerId" name="customerId" required>
+                  <option value="">Select Customer</option>
+                  <c:forEach var="customer" items="${requestScope.customerList}">
+                    <option value="${customer.customerID}"><c:out value="${customer.customerName}" /></option>
+                  </c:forEach>
+                  <c:if test="${empty requestScope.customerList}">
+                    <option value="" disabled>No customers available</option>
+                  </c:if>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="discount" class="form-label">Discount (%)</label>
+                <input type="number" step="0.01" class="form-control" id="discount" name="discount" value="0.00" min="0" max="100">
+              </div>
+              <div class="mb-3">
+                <h6>Order Items</h6>
+                <div id="orderItems">
+                  <div class="row mb-2">
+                    <div class="col-5">
+                      <select class="form-control item-select" name="itemId[]" required>
+                        <option value="">Select Item</option>
+                        <c:forEach var="item" items="${requestScope.itemList}">
+                          <option value="${item.itemID}" data-price="${item.sellPrice}"><c:out value="${item.itemName} (Stock: ${item.qty})" /></option>
+                        </c:forEach>
+                        <c:if test="${empty requestScope.itemList}">
+                          <option value="" disabled>No items available</option>
+                        </c:if>
+                      </select>
+                    </div>
+                    <div class="col-3">
+                      <input type="number" class="form-control item-qty" name="quantity[]" min="1" required>
+                    </div>
+                    <div class="col-3">
+                      <input type="number" step="0.01" class="form-control item-price" readonly>
+                    </div>
+                    <div class="col-1">
+                      <button type="button" class="btn btn-danger remove-item"><i class="fas fa-trash"></i></button>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-secondary mt-2" id="addItem">Add Item</button>
+              </div>
+              <div id="formError" class="text-danger" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary">Create Order</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+  <script>
+    if (typeof bootstrap === 'undefined') {
+      document.write('<script src="${pageContext.request.contextPath}/js/bootstrap.bundle.min.js"><\/script>');
+    }
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const addItemBtn = document.getElementById('addItem');
+      const orderItems = document.getElementById('orderItems');
+      const firstItemRow = orderItems.querySelector('.row').cloneNode(true);
+
+      addItemBtn.addEventListener('click', function() {
+        const newRow = firstItemRow.cloneNode(true);
+        newRow.querySelector('.item-select').value = '';
+        newRow.querySelector('.item-qty').value = '';
+        newRow.querySelector('.item-price').value = '';
+        orderItems.appendChild(newRow);
+      });
+
+      orderItems.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-item') || e.target.parentElement.classList.contains('remove-item')) {
+          const row = e.target.closest('.row');
+          if (orderItems.querySelectorAll('.row').length > 1) {
+            row.remove();
+          } else {
+            alert('At least one item is required.');
+          }
+        }
+      });
+
+      orderItems.addEventListener('change', function(e) {
+        if (e.target.classList.contains('item-select')) {
+          const select = e.target;
+          const priceInput = select.closest('.row').querySelector('.item-price');
+          const selectedOption = select.options[select.selectedIndex];
+          priceInput.value = selectedOption.dataset.price || '';
+        }
+      });
+
+      document.getElementById('createOrderForm').addEventListener('submit', function(e) {
+        const quantities = document.querySelectorAll('.item-qty');
+        const items = document.querySelectorAll('.item-select');
+        let error = '';
+
+        for (let i = 0; i < items.length; i++) {
+          if (!items[i].value) {
+            error = 'Please select an item.';
+            break;
+          }
+          const qty = parseInt(quantities[i].value) || 0;
+          const stockText = items[i].options[items[i].selectedIndex].text;
+          const stockMatch = stockText.match(/Stock: (\d+)/);
+          const stock = stockMatch ? parseInt(stockMatch[1]) : 0;
+          if (qty <= 0) {
+            error = `Quantity for ${stockText.split(' (')[0]} must be positive.`;
+            break;
+          }
+          if (qty > stock) {
+            error = `Item ${stockText.split(' (')[0]} is out of stock (available: ${stock}).`;
+            break;
+          }
+        }
+
+        if (error) {
+          e.preventDefault();
+          document.getElementById('formError').textContent = error;
+          document.getElementById('formError').style.display = 'block';
+          alert(error);
+        } else {
+          document.getElementById('formError').style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

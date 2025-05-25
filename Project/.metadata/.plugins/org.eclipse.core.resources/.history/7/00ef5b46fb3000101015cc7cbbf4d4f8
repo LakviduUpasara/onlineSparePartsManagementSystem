@@ -1,0 +1,287 @@
+<%-- web/order_details.jsp --%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.util.*, com.spareparts.model.*, java.text.DecimalFormat" %>
+<%@ page errorPage="/error.jsp" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Trade Support - Order Bill</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="${pageContext.request.contextPath}/css/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" integrity="sha512-A8kq5D4Y6Q3u5nF4Osk6M4s3hZcIdvKS0EXVaM3vKL+xnF3l5g2Z+BlI9yGddALf6nWrXg1WXDxK38g/Mq2bCQA==" crossorigin="anonymous">
+    <link href="${pageContext.request.contextPath}/css/fontawesome.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { display: flex; min-height: 100vh; overflow-x: hidden; }
+        .sidebar { width: 250px; background-color: #001f3f; color: #fff; flex-shrink: 0; padding-top: 1rem; }
+        .sidebar a { display: block; padding: 12px 20px; color: #fff; text-decoration: none; transition: background 0.3s; }
+        .sidebar a:hover { background-color: #003366; }
+        .sidebar h5 { text-align: center; margin-bottom: 1rem; font-weight: bold; }
+        .main-content { flex-grow: 1; background: #f8f9fa; }
+        .navbar { background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .dashboard-content { padding: 2rem; }
+        .custom-header { background-color: #0d0b56; color: white; }
+        .btn-primary { background-color: #0d0b56; border-color: #0d0b56; }
+        .btn-primary:hover { background-color: #003366; border-color: #003366; }
+        .bill-logo { max-width: 100px; }
+        .bill-table { width: 100%; border-collapse: collapse; }
+        .bill-table th, .bill-table td { border: 1px solid #000; padding: 8px; text-align: left; }
+        .bill-table th { background-color: #f2f2f2; }
+        .bill-content { font-size: 14px; }
+        @media print {
+            body { display: block; }
+            .no-print, .sidebar, .navbar { display: none !important; }
+            .bill-content {
+                width: 100%;
+                margin: 0;
+                padding: 20mm;
+                box-sizing: border-box;
+                font-size: 12pt;
+                color: #000;
+            }
+            .bill-logo { max-width: 80px; }
+            .bill-table { page-break-inside: auto; }
+            .bill-table tr { page-break-inside: avoid; page-break-after: auto; }
+            @page { margin: 20mm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h5>Admin Panel</h5>
+        <a href="${pageContext.request.contextPath}/dashboard"><i class="fas fa-chart-line me-2"></i> Dashboard</a>
+        <a href="${pageContext.request.contextPath}/GetAllServlet"><i class="fas fa-users me-2"></i>User Management</a>
+        <a href="${pageContext.request.contextPath}/stock-manager"><i class="fas fa-boxes me-2"></i>Stock Manager</a>
+        <a href="${pageContext.request.contextPath}/order-management"><i class="fas fa-shopping-cart me-2"></i>Order Management</a>
+        <a href="${pageContext.request.contextPath}/cashier"><i class="fas fa-cash-register me-2"></i>Cashier</a>
+        <a href="${pageContext.request.contextPath}/item-list"><i class="fas fa-box me-2"></i>Item Management</a>
+        <a href="${pageContext.request.contextPath}/customer-management"><i class="fas fa-user-friends me-2"></i>Customer Management</a>
+        <a href="${pageContext.request.contextPath}/supplier-list"><i class="fas fa-truck me-2"></i>Supplier Management</a>
+        <a href="#"><i class="fas fa-arrow-up-right-from-square me-2"></i>Outgoing Products</a>
+        <a href="#"><i class="fas fa-arrow-down-to-line me-2"></i>Purchase Products</a>
+        <a href="#" data-bs-toggle="collapse" data-bs-target="#settingsMenu"><i class="fas fa-gear me-2"></i>Settings</a>
+        <div class="collapse ms-3" id="settingsMenu">
+            <a href="${pageContext.request.contextPath}/profile.jsp" class="d-block mt-1"><i class="fas fa-id-badge me-2"></i>Profile Settings</a>
+            <a href="${pageContext.request.contextPath}/profile.jsp" class="d-block mt-1"><i class="fas fa-lock me-2"></i>Change Password</a>
+            <a href="#" class="d-block mt-1"><i class="fas fa-sliders-h me-2"></i>System Preferences</a>
+        </div>
+    </div>
+
+    <div class="main-content w-100">
+        <nav class="navbar navbar-expand-lg navbar-light px-4">
+            <a class="navbar-brand fw-bold" href="#">Full Trade Support</a>
+            <div class="ms-auto d-flex align-items-center">
+                <span class="me-3">Welcome, <strong><%= session.getAttribute("userName") != null ? session.getAttribute("userName") : "Guest" %></strong></span>
+                <div class="dropdown">
+                    <a class="btn btn-light dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle fa-lg"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile.jsp"><i class="fas fa-id-badge me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cogs me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="${pageContext.request.contextPath}/LogoutServlet"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="dashboard-content">
+            <h2>Order Bill</h2>
+            <p>View bill details for the selected order below:</p>
+            <% String error = (String) request.getAttribute("error"); %>
+            <% String success = (String) request.getAttribute("success"); %>
+            <% if (error != null) { %>
+                <div class="alert alert-danger"><%= error %></div>
+            <% } %>
+            <% if (success != null) { %>
+                <div class="alert alert-success"><%= success %></div>
+            <% } %>
+
+            <div class="bill-content" id="billContent">
+                <div class="text-center mb-4">
+                    <img src="${pageContext.request.contextPath}/images/spare_parts_logo.png" alt="Full Trade Support Logo" class="bill-logo" onerror="this.src='https://via.placeholder.com/80';">
+                    <h3>Full Trade Support</h3>
+                </div>
+                <% 
+                    Order billOrder = (Order) request.getAttribute("billOrder"); 
+                    Customer billCustomer = (Customer) request.getAttribute("billCustomer"); 
+                    List<OrderDetail> billOrderDetails = (List<OrderDetail>) request.getAttribute("billOrderDetails"); 
+                    Map<Integer, String> itemNames = (Map<Integer, String>) request.getAttribute("itemNames"); 
+                %>
+                <% if (billOrder != null && billCustomer != null && billOrderDetails != null && itemNames != null && !billOrderDetails.isEmpty()) { %>
+                    <p><strong>Order ID:</strong> <%= billOrder.getOrderID() %></p>
+                    <p><strong>Customer ID:</strong> <%= billCustomer.getCustomerID() %></p>
+                    <p><strong>Customer Name:</strong> <%= billCustomer.getCustomerName() != null ? billCustomer.getCustomerName() : "N/A" %></p>
+                    <p><strong>Contact Number:</strong> <%= billCustomer.getContactNumber() != null ? billCustomer.getContactNumber() : "N/A" %></p>
+                    <p><strong>Order Date:</strong> <%= billOrder.getOrderDate() != null ? billOrder.getOrderDate() : "N/A" %></p>
+                    <table class="bill-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Unit Price</th>
+                                <th>Quantity</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% double subtotal = 0; %>
+                            <% for (OrderDetail detail : billOrderDetails) { %>
+                                <% 
+                                    String itemName = itemNames.getOrDefault(detail.getItemID(), "Unknown"); 
+                                    double itemTotal = detail.getQuantity() * detail.getUnitPrice(); 
+                                    subtotal += itemTotal; 
+                                %>
+                                <tr>
+                                    <td><%= itemName %></td>
+                                    <td>$<%= new DecimalFormat("#,##0.00").format(detail.getUnitPrice()) %></td>
+                                    <td><%= detail.getQuantity() %></td>
+                                    <td>$<%= new DecimalFormat("#,##0.00").format(itemTotal) %></td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                    <p><strong>Subtotal:</strong> $<%= new DecimalFormat("#,##0.00").format(subtotal) %></p>
+                    <p><strong>Discount:</strong> <%= new DecimalFormat("#,##0.00").format(billOrder.getDiscount()) %>%</p>
+                    <p><strong>Total:</strong> $<%= new DecimalFormat("#,##0.00").format(billOrder.getTotalAmount()) %></p>
+                    <div class="mb-3 no-print">
+                        <label for="paidAmount" class="form-label">Customer Paid Amount ($)</label>
+                        <input type="number" step="0.01" class="form-control" id="paidAmount" min="0" value="0.00">
+                    </div>
+                    <p><strong>Balance:</strong> $<span id="balance">0.00</span></p>
+                <% } else { %>
+                    <p>No bill details available. Please ensure order data is complete.</p>
+                <% } %>
+            </div>
+
+            <div class="mt-4 no-print">
+                <button class="btn btn-primary me-2" onclick="printBill()">Print Bill</button>
+                <button class="btn btn-primary me-2" onclick="downloadPDF()">Download PDF</button>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#pdfSettingsModal">Edit PDF Settings</button>
+                <a href="${pageContext.request.contextPath}/order-management" class="btn btn-secondary">Back to Orders</a>
+            </div>
+
+            <!-- PDF Settings Modal -->
+            <div class="modal fade" id="pdfSettingsModal" tabindex="-1" aria-labelledby="pdfSettingsModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="pdfSettingsModalLabel">PDF Settings</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="pdfSettingsForm">
+                                <div class="mb-3">
+                                    <label for="logoSize" class="form-label">Logo Size (px)</label>
+                                    <input type="number" class="form-control" id="logoSize" value="80" min="50" max="200">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="fontSize" class="form-label">Font Size (pt)</label>
+                                    <input type="number" class="form-control" id="fontSize" value="12" min="8" max="16">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="pageMargin" class="form-label">Page Margin (mm)</label>
+                                    <input type="number" class="form-control" id="pageMargin" value="20" min="10" max="30">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="orientation" class="form-label">Orientation</label>
+                                    <select class="form-control" id="orientation">
+                                        <option value="portrait">Portrait</option>
+                                        <option value="landscape">Landscape</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="applyPDFSettings()">Apply</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script>
+        if (typeof bootstrap === 'undefined') {
+            document.write('<script src="${pageContext.request.contextPath}/js/bootstrap.bundle.min.js"><\/script>');
+        }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Calculate balance
+            const paidAmountInput = document.getElementById('paidAmount');
+            const balanceSpan = document.getElementById('balance');
+            const totalAmount = parseFloat('<%= billOrder != null ? billOrder.getTotalAmount() : 0 %>');
+
+            function updateBalance() {
+                const paid = parseFloat(paidAmountInput.value) || 0;
+                const balance = paid - totalAmount;
+                balanceSpan.textContent = balance.toFixed(2);
+            }
+
+            if (paidAmountInput) {
+                paidAmountInput.addEventListener('input', updateBalance);
+                updateBalance();
+            }
+        });
+
+        function printBill() {
+            const billContent = document.getElementById('billContent');
+            billContent.style.display = 'block';
+            window.print();
+        }
+
+        let pdfSettings = {
+            logoSize: 80,
+            fontSize: 12,
+            pageMargin: 20,
+            orientation: 'portrait'
+        };
+
+        function applyPDFSettings() {
+            pdfSettings.logoSize = parseInt(document.getElementById('logoSize').value) || 80;
+            pdfSettings.fontSize = parseInt(document.getElementById('fontSize').value) || 12;
+            pdfSettings.pageMargin = parseInt(document.getElementById('pageMargin').value) || 20;
+            pdfSettings.orientation = document.getElementById('orientation').value || 'portrait';
+            document.querySelector('.bill-logo').style.maxWidth = pdfSettings.logoSize + 'px';
+            document.querySelector('.bill-content').style.fontSize = pdfSettings.fontSize + 'pt';
+            bootstrap.Modal.getInstance(document.getElementById('pdfSettingsModal')).hide();
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const billContent = document.getElementById('billContent');
+            // Temporarily apply PDF settings for rendering
+            const originalLogoSize = billContent.querySelector('.bill-logo').style.maxWidth;
+            const originalFontSize = billContent.style.fontSize;
+            billContent.querySelector('.bill-logo').style.maxWidth = pdfSettings.logoSize + 'px';
+            billContent.style.fontSize = pdfSettings.fontSize + 'pt';
+
+            html2canvas(billContent, { scale: 2 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: pdfSettings.orientation,
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth() - 2 * pdfSettings.pageMargin;
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                pdf.addImage(imgData, 'PNG', pdfSettings.pageMargin, pdfSettings.pageMargin, pdfWidth, pdfHeight);
+                pdf.save('bill_order_<%= billOrder != null ? billOrder.getOrderID() : "unknown" %>.pdf');
+                // Restore original styles
+                billContent.querySelector('.bill-logo').style.maxWidth = originalLogoSize;
+                billContent.style.fontSize = originalFontSize;
+            }).catch(error => {
+                console.error('PDF generation failed:', error);
+                alert('Failed to generate PDF. Please try again.');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+package com.spareparts.servlet;
+
+import com.spareparts.controller.ItemController;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.sql.SQLException;
+
+@WebServlet("/item-delete")
+public class ItemDeleteServlet extends BaseServlet {
+    private static final long serialVersionUID = 1L;
+    private ItemController itemController;
+
+    @Override
+    public void init() {
+        super.init();
+        itemController = new ItemController(itemDAO);
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            String idParam = request.getParameter("id");
+            System.out.println("Item ID received: " + idParam); // debug
+
+            int itemID = Integer.parseInt(idParam);
+            System.out.println("Parsed itemID: " + itemID); // debug
+
+            boolean isDeleted = itemController.deleteItem(itemID);
+            System.out.println("Delete result: " + isDeleted); // debug
+
+            HttpSession session = request.getSession();
+            if (isDeleted) {
+            	
+                session.setAttribute("message", "Item deleted successfully!");
+                session.setAttribute("messageType", "success");
+            } else {
+                session.setAttribute("message", "Failed to delete item.");
+                session.setAttribute("messageType", "error");
+            }
+
+            response.sendRedirect("item-list");
+
+        } catch (NumberFormatException nfe) {
+            System.err.println("Invalid item ID format: " + request.getParameter("id"));
+            nfe.printStackTrace();
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid item ID.");
+        } catch (SQLException sqlEx) {
+            System.err.println("SQL error while deleting item:");
+            sqlEx.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error deleting item from database.");
+        } catch (Exception ex) {
+            System.err.println("Unexpected error:");
+            ex.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unexpected error occurred.");
+        }
+    }
+
+}

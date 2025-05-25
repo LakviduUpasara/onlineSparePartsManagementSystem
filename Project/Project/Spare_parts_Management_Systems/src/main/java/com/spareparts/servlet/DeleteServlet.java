@@ -1,0 +1,48 @@
+package com.spareparts.servlet;
+
+import java.io.IOException;
+import java.util.List;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.spareparts.controller.DetailsController;
+import com.spareparts.model.DetailsModel;
+
+@WebServlet("/DeleteServlet")
+public class DeleteServlet extends HttpServlet {
+	
+    private static final long serialVersionUID = 1L;
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String id = request.getParameter("id");
+
+        if (id == null || id.trim().isEmpty()) {
+            response.getWriter().println("<script>alert('Error: ID is missing.'); window.location.href='GetAllServlet';</script>");
+            return;
+        }
+
+        boolean isTrue = DetailsController.deletedata(id);
+
+        if (isTrue) {
+        	response.getWriter().println("<script>alert('Error: Delete successfully'); window.location.href='GetAllServlet';</script>");
+            response.sendRedirect("GetAllServlet");
+        } else {
+        	
+        	response.getWriter().println("<script>alert('Error: Delete successfully'); window.location.href='GetAllServlet';</script>");
+            response.sendRedirect("GetAllServlet");
+            List<DetailsModel> userdetails = DetailsController.getById(id);
+            request.setAttribute("userdetails", userdetails);
+            RequestDispatcher dispatcher = request.getRequestDispatcher("Admin/GetAllServlet");
+            dispatcher.forward(request, response);
+        }
+    }
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        doGet(request, response); // Handle POST same as GET
+    }
+}

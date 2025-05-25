@@ -1,0 +1,178 @@
+package com.spareparts.servlet;
+
+import com.spareparts.controller.OrderController;
+import com.spareparts.dao.CustomerDAO;
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.dao.OrderDAO;
+import com.spareparts.model.OrderDetail;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
+@WebServlet(urlPatterns = {"/order-management", "/order-create", "/order-update", "/order-delete", "/order-details"})
+public class OrderServlet extends HttpServlet {
+    private static final Logger LOGGER = Logger.getLogger(OrderServlet.class.getName());
+    private OrderController orderController;
+    private ItemDAO itemDAO;
+    private CustomerDAO customerDAO;
+
+    @Override
+    public void init() throws ServletException {
+        try {
+            // Load MySQL driver (assumed in Tomcat lib)
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            orderController = new OrderController(new OrderDAO(), new ItemDAO());
+            itemDAO = new ItemDAO();
+            customerDAO = new CustomerDAO();
+        } catch (ClassNotFoundException e) {
+            LOGGER.severe("MySQL JDBC Driver not found: " + e.getMessage());
+            throw new ServletException("Failed to load MySQL JDBC Driver", e);
+        } catch (Exception e) {
+            LOGGER.severe("Initialization failed: " + e.getMessage());
+            throw new ServletException("Failed to initialize servlet", e);
+        }
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String path = request.getServletPath();
+        response.setContentType("text/html; charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        try {
+            switch (path) {
+                case "/order-management":
+                    request.setAttribute("orderList", orderController.getAllOrders());
+                    request.setAttribute("itemList", itemDAO.getAllItems());
+                    request.setAttribute("customerList", customerDAO.getAllCustomers());
+                    request.getRequestDispatcher("/order-management.jsp").forward(request, response);
+                    break;
+                case "/order-details":
+                case "/order-update":
+                    String orderIdStr = request.getParameter("id");
+                    if (orderIdStr == null || orderIdStr.trim().isEmpty()) {
+                        out.println("<script>alert('Error: Order ID is missing.'); window.location.href='order-management';</script>");
+                        return;
+                    }
+                    int orderId = Integer.parseInt(orderIdStr);
+                    request.setAttribute("order", orderController.getOrderById(orderId));
+                    request.setAttribute("orderDetails", orderController.getOrderDetails(orderId));
+                    request.setAttribute("itemList", itemDAO.getAllItems());
+                    request.setAttribute("customerList", customerDAO.getAllCustomers());
+                    request.getRequestDispatcher(path.equals("/order-details") ? "/order-details.jsp" : "/order-update.jsp").forward(request, response);
+                    break;
+                case "/order-delete":
+                    orderIdStr = request.getParameter("id");
+                    if (orderIdStr == null || orderIdStr.trim().isEmpty()) {
+                        out.println("<script>alert('Error: Order ID is missing.'); window.location.href='order-management';</script>");
+                        return;
+                    }
+                    orderId = Integer.parseInt(orderIdStr);
+                    boolean deleted = orderController.deleteOrder(orderId, request);
+                    out.println("<script>alert('" + (deleted ? "Order deleted successfully." : "Error: Failed to delete order.") + "'); window.location.href='order-management';</script>");
+                    break;
+                default:
+                    out.println("<script>alert('Error: Page not found.'); window.location.href='order-management';</script>");
+            }
+        } catch (NumberFormatException e) {
+            LOGGER.warning("Invalid order ID format: " + e.getMessage());
+            out.println("<script>alert('Error: Invalid order ID.'); window.location.href='order-management';</script>");
+        } catch (SQLException e) {
+            LOGGER.severe("Database error: " + e.getMessage());
+            out.println("<script>alert('Database error: " + e.getMessage().replace("'", "\\'") + "'); window.location.href='order-management';</script>");
+        } catch (Exception e) {
+            LOGGER.severe("Unexpected error: " + e.getMessage());
+            out.println("<script>alert('Unexpected error: " + e.getMessage().replace("'", "\\'") + "'); window.location.href='order-management';</script>");
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String path = request.getServletPath();
+        response.setContentType("text/html; charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        try {
+            // Validate parameters
+            String customerIdStr = request.getParameter("customerId");
+            String discountStr = request.getParameter("discount");
+            String[] itemIds = request.getParameterValues("itemId[]");
+            String[] quantities = request.getParameterValues("quantity[]");
+
+            if (customerIdStr == null || customerIdStr.trim().isEmpty()) {
+                out.println("<script>alert('Error: Customer is required.'); window.location.href='order-management';</script>");
+                return;
+            }
+            if (discountStr == null || discountStr.trim().isEmpty()) {
+                out.println("<script>alert('Error: Discount is required.'); window.location.href='order-management';</script>");
+                return;
+            }
+            if (itemIds == null || quantities == null || itemIds.length == 0 || itemIds.length != quantities.length) {
+                out.println("<script>alert('Error: Invalid order items.'); window.location.href='order-management';</script>");
+                return;
+            }
+
+            int customerId = Integer.parseInt(customerIdStr);
+            double discount = Double.parseDouble(discountStr);
+            if (discount < 0 || discount > 100) {
+                out.println("<script>alert('Error: Discount must be between 0 and 100.'); window.location.href='order-management';</script>");
+                return;
+            }
+
+            List<OrderDetail> orderDetails = new ArrayList<>();
+            for (int i = 0; i < itemIds.length; i++) {
+                if (itemIds[i].trim().isEmpty() || quantities[i].trim().isEmpty()) {
+                    out.println("<script>alert('Error: Item or quantity missing.'); window.location.href='order-management';</script>");
+                    return;
+                }
+                OrderDetail detail = new OrderDetail();
+                detail.setItemID(Integer.parseInt(itemIds[i]));
+                int qty = Integer.parseInt(quantities[i]);
+                if (qty <= 0) {
+                    out.println("<script>alert('Error: Quantity must be positive.'); window.location.href='order-management';</script>");
+                    return;
+                }
+                detail.setQuantity(qty);
+                orderDetails.add(detail);
+            }
+
+            boolean success;
+            if (path.equals("/order-create")) {
+                success = orderController.createOrder(customerId, orderDetails, discount, request);
+                out.println("<script>alert('" + (success ? "Order created successfully." : "Error: Failed to create order.") + "'); window.location.href='order-management';</script>");
+            } else if (path.equals("/order-update")) {
+                String orderIdStr = request.getParameter("orderId");
+                if (orderIdStr == null || orderIdStr.trim().isEmpty()) {
+                    out.println("<script>alert('Error: Order ID is missing.'); window.location.href='order-management';</script>");
+                    return;
+                }
+                int orderId = Integer.parseInt(orderIdStr);
+                success = orderController.updateOrder(orderId, customerId, orderDetails, discount, request);
+                out.println("<script>alert('" + (success ? "Order updated successfully." : "Error: Failed to update order.") + "'); window.location.href='order-management';</script>");
+            } else {
+                out.println("<script>alert('Error: Invalid request path.'); window.location.href='order-management';</script>");
+            }
+        } catch (NumberFormatException e) {
+            LOGGER.warning("Invalid input format: " + e.getMessage());
+            out.println("<script>alert('Error: Invalid input format.'); window.location.href='order-management';</script>");
+        } catch (IllegalArgumentException e) {
+            LOGGER.warning("Validation error: " + e.getMessage());
+            out.println("<script>alert('Error: " + e.getMessage().replace("'", "\\'") + "'); window.location.href='order-management';</script>");
+        } catch (SQLException e) {
+            LOGGER.severe("Database error: " + e.getMessage());
+            out.println("<script>alert('Database error: " + e.getMessage().replace("'", "\\'") + "'); window.location.href='order-management';</script>");
+        } catch (Exception e) {
+            LOGGER.severe("Unexpected error: " + e.getMessage());
+            out.println("<script>alert('Unexpected error: " + e.getMessage().replace("'", "\\'") + "'); window.location.href='order-management';</script>");
+        }
+    }
+}

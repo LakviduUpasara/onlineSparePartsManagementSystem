@@ -1,0 +1,133 @@
+<%@page import="java.util.List"%>
+<%@page import="your.package.name.Order"%>
+<%@page import="your.package.name.Item"%>
+<%@page import="your.package.name.Customer"%>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@include file="Nav.jsp" %>
+
+<%
+    List<Order> orderList = (List<Order>) request.getAttribute("orderList");
+    List<Item> itemList = (List<Item>) request.getAttribute("itemList");
+    List<Customer> customerList = (List<Customer>) request.getAttribute("customerList");
+%>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-dark">Cashier Dashboard</h2>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addOrderModal">
+            <i class="fas fa-plus-circle"></i> New Order
+        </button>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card shadow">
+        <div class="card-body">
+            <h5 class="card-title">All Orders</h5>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Total Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (orderList != null) {
+                            for (Order order : orderList) { %>
+                            <tr>
+                                <td><%= order.getOrderId() %></td>
+                                <td><%= order.getCustomerName() %></td>
+                                <td><%= order.getOrderDate() %></td>
+                                <td>Rs. <%= order.getTotalAmount() %></td>
+                                <td>
+                                    <a href="PrintBillServlet?orderId=<%= order.getOrderId() %>" class="btn btn-sm btn-info" target="_blank">
+                                        <i class="fas fa-print"></i> Print
+                                    </a>
+                                </td>
+                            </tr>
+                        <% }} else { %>
+                            <tr><td colspan="5" class="text-center">No orders found.</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Order Modal -->
+<div class="modal fade" id="addOrderModal" tabindex="-1" aria-labelledby="addOrderLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form action="AddOrderServlet" method="post">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="addOrderLabel">Create New Order</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Customer Selection -->
+                    <div class="mb-3">
+                        <label for="customerId" class="form-label">Customer</label>
+                        <select name="customerId" id="customerId" class="form-select" required>
+                            <option value="">-- Select Customer --</option>
+                            <% for (Customer c : customerList) { %>
+                                <option value="<%= c.getId() %>"><%= c.getName() %></option>
+                            <% } %>
+                        </select>
+                    </div>
+
+                    <!-- Item Selection (repeating) -->
+                    <div id="item-container">
+                        <div class="row g-3 align-items-end mb-2">
+                            <div class="col-md-6">
+                                <label class="form-label">Item</label>
+                                <select name="itemIds" class="form-select" required>
+                                    <option value="">-- Select Item --</option>
+                                    <% for (Item item : itemList) { %>
+                                        <option value="<%= item.getId() %>"><%= item.getName() %> - Rs. <%= item.getSellPrice() %></option>
+                                    <% } %>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" name="quantities" class="form-control" required min="1">
+                            </div>
+                            <div class="col-md-3">
+                                <button type="button" class="btn btn-danger remove-item">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary mt-2" id="addItemBtn">
+                        <i class="fas fa-plus"></i> Add Another Item
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Save Order</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('addItemBtn').addEventListener('click', function () {
+        const container = document.getElementById('item-container');
+        const row = container.querySelector('.row').cloneNode(true);
+        row.querySelectorAll('input, select').forEach(el => el.value = '');
+        container.appendChild(row);
+    });
+
+    document.getElementById('item-container').addEventListener('click', function (e) {
+        if (e.target.closest('.remove-item')) {
+            const rows = container.querySelectorAll('.row');
+            if (rows.length > 1) {
+                e.target.closest('.row').remove();
+            }
+        }
+    });
+</script>

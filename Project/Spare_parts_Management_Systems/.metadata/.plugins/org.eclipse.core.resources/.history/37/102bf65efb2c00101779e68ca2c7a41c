@@ -1,0 +1,5 @@
+package com.spareparts.dao;
+
+public class Supplier {
+
+}

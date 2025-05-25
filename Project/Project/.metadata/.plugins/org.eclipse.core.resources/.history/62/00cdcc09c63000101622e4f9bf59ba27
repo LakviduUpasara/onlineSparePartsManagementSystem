@@ -1,0 +1,95 @@
+package com.spareparts.controller;
+
+import com.spareparts.dao.CustomerDAO;
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.dao.OrderDAO;
+import com.spareparts.model.OrderDetail;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+@WebServlet(urlPatterns = {"/order-management", "/order-create", "/order-update", "/order-delete", "/order-details"})
+public class OrderServlet extends HttpServlet {
+    private OrderController orderController;
+    private ItemDAO itemDAO;
+    private CustomerDAO customerDAO;
+
+    @Override
+    public void init() throws ServletException {
+        orderController = new OrderController(new OrderDAO(), new ItemDAO());
+        itemDAO = new ItemDAO();
+        customerDAO = new CustomerDAO();
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String path = request.getServletPath();
+        try {
+            switch (path) {
+                case "/order-management":
+                    request.setAttribute("orderList", orderController.getAllOrders());
+                    request.setAttribute("itemList", itemDAO.getAllItems());
+                    request.setAttribute("customerList", customerDAO.getAllCustomers());
+                    request.getRequestDispatcher("/order-management.jsp").forward(request, response);
+                    break;
+                case "/order-details":
+                case "/order-update":
+                    int orderId = Integer.parseInt(request.getParameter("id"));
+                    request.setAttribute("order", orderController.getOrderById(orderId));
+                    request.setAttribute("orderDetails", orderController.getOrderDetails(orderId));
+                    request.setAttribute("itemList", itemDAO.getAllItems());
+                    request.setAttribute("customerList", customerDAO.getAllCustomers());
+                    request.getRequestDispatcher(path.equals("/order-details") ? "/order-details.jsp" : "/order-update.jsp").forward(request, response);
+                    break;
+                case "/order-delete":
+                    orderId = Integer.parseInt(request.getParameter("id"));
+                    orderController.deleteOrder(orderId, request);
+                    response.sendRedirect("order-management");
+                    break;
+                default:
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            }
+        } catch (SQLException e) {
+            request.setAttribute("error", "Database error: " + e.getMessage());
+            request.getRequestDispatcher("/error.jsp").forward(request, response);
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String path = request.getServletPath();
+        try {
+            int customerId = Integer.parseInt(request.getParameter("customerId"));
+            double discount = Double.parseDouble(request.getParameter("discount"));
+            String[] itemIds = request.getParameterValues("itemId[]");
+            String[] quantities = request.getParameterValues("quantity[]");
+
+            List<OrderDetail> orderDetails = new ArrayList<>();
+            for (int i = 0; i < itemIds.length; i++) {
+                OrderDetail detail = new OrderDetail();
+                detail.setItemID(Integer.parseInt(itemIds[i]));
+                detail.setQuantity(Integer.parseInt(quantities[i]));
+                orderDetails.add(detail);
+            }
+
+            if (path.equals("/order-create")) {
+                orderController.createOrder(customerId, orderDetails, discount, request);
+            } else if (path.equals("/order-update")) {
+                int orderId = Integer.parseInt(request.getParameter("orderId"));
+                orderController.updateOrder(orderId, customerId, orderDetails, discount, request);
+            }
+            response.sendRedirect("order-management");
+        } catch (SQLException | IllegalArgumentException e) {
+            request.setAttribute("itemList", itemDAO.getAllItems());
+            request.setAttribute("customerList", customerDAO.getAllCustomers());
+            request.getRequestDispatcher("/order-management.jsp").forward(request, response);
+        }
+    }
+}

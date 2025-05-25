@@ -1,0 +1,36 @@
+package com.spareparts.servelet;
+
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+
+import com.spareparts.service.SupplierService;
+
+@WebServlet("/SuppierinsertSavelet")
+public class SuppierinsertSavelet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+       
+    	 String name = request.getParameter("name");
+        String contact = request.getParameter("contact");
+        String address = request.getParameter("address");
+
+        String alertMessage;
+        try {
+            boolean isTrue = SupplierService.InsertData(name, contact, address);
+
+            if (isTrue) {
+                alertMessage = "Data Insert Successful " + name +"" +contact +"  " + address;
+            } else {
+                alertMessage = "Data Insert Unsuccessful " + name +" " +contact +" "+ address;
+            }
+        } catch (Exception e) {
+        	
+            alertMessage = "SQL Error: " + e.getMessage();
+        }
+
+        response.getWriter().println("<script>alert('" + alertMessage + "'); window.location.href='Maneger/maneger_dashbord.jsp';</script>");
+    }
+}

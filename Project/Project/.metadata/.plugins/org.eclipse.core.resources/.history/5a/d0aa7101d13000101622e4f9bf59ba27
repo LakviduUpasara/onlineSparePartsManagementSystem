@@ -1,0 +1,27 @@
+package com.spareparts.model;
+
+public class Customer {
+    private int customerID;
+    private String customerName;
+    private String address;
+    private String contactNumber;
+
+    // Getters and Setters
+    public int getCustomerID() { return customerID; }
+    public void setCustomerID(int customerID) { this.customerID = customerID; }
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public String getContactNumber() { return contactNumber; }
+    public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
+
+    public void validate() throws IllegalArgumentException {
+        if (customerName == null || customerName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Customer name is required");
+        }
+        if (contactNumber != null && !contactNumber.matches("\\d{10,15}")) {
+            throw new IllegalArgumentException("Invalid contact number");
+        }
+    }
+}

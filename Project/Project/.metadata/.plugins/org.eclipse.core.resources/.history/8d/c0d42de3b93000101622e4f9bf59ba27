@@ -1,0 +1,35 @@
+package com.spareparts.servlet;
+
+import com.spareparts.controller.ItemController;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.SQLException;
+
+@WebServlet("/item-delete")
+public class ItemDeleteServlet extends BaseServlet {
+    private static final long serialVersionUID = 1L;
+	private ItemController itemController;
+
+    @Override
+    public void init() {
+        super.init();
+        itemController = new ItemController(itemDAO);
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            int itemID = Integer.parseInt(request.getParameter("id"));
+            itemController.deleteItem(itemID);
+            response.sendRedirect("item-list");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
+        }
+    }
+}

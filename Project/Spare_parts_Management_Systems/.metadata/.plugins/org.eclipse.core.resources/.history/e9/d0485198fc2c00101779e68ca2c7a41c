@@ -1,0 +1,5 @@
+package com.spareparts.model;
+
+public class Supplier {
+
+}

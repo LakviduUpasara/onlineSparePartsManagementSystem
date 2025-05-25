@@ -1,0 +1,16 @@
+package com.spareparts.servlet;
+
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.dao.ItemDAOImpl;
+
+import javax.servlet.http.HttpServlet;
+
+public abstract class BaseServlet extends HttpServlet {
+   
+	protected ItemDAO itemDAO;
+
+    @Override
+    public void init() {
+        itemDAO = new ItemDAOImpl();
+    }
+}

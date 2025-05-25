@@ -1,0 +1,442 @@
+<%-- web/Cashier/cashier.jsp --%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.util.*, com.spareparts.model.Order, com.spareparts.model.OrderDetail, com.spareparts.model.Item, com.spareparts.model.Customer, java.text.DecimalFormat" %>
+<%@ page errorPage="/error.jsp" %>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Trade Support - Cashier Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="${pageContext.request.contextPath}/css/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" integrity="sha512-A8kq5D4Y6Q3u5nF4Osk6M4s3hZcIdvKS0EXVaM3vKL+xnF3l5g2Z+BlI9yGddALf6nWrXg1WXDxK38g/Mq2bCQA==" crossorigin="anonymous">
+    <link href="${pageContext.request.contextPath}/css/fontawesome.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { display: flex; min-height: 100vh; overflow-x: hidden; }
+        .sidebar { width: 250px; background-color: #001f3f; color: #fff; flex-shrink: 0; padding-top: 1rem; }
+        .sidebar a { display: block; padding: 12px 20px; color: #fff; text-decoration: none; transition: background 0.3s; }
+        .sidebar a:hover { background-color: #003366; }
+        .sidebar h5 { text-align: center; margin-bottom: 1rem; font-weight: bold; }
+        .main-content { flex-grow: 1; background: #f8f9fa; }
+        .navbar { background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .dashboard-content { padding: 2rem; }
+        .custom-header { background-color: #0d0b56; color: white; }
+        .btn-primary { background-color: #0d0b56; border-color: #0d0b56; }
+        .btn-primary:hover { background-color: #003366; border-color: #003366; }
+        .action-btn { padding: 6px 12px; font-size: 0.9rem; min-width: 80px; }
+        .action-btn i { margin-right: 4px; }
+        .bill-content { display: none; font-size: 14px; max-width: 210mm; margin: 0 auto; padding: 20px; }
+        .bill-logo { height: 80px; }
+        .bill-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        .bill-table th, .bill-table td { border: 1px solid #000; padding: 8px; text-align: left; }
+        .bill-table th { background-color: #e9ecef; font-weight: bold; }
+        @media print {
+            body * { visibility: hidden; }
+            .bill-print-container, .bill-print-container * { visibility: visible; }
+            .bill-print-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 210mm;
+                height: auto;
+                margin: 0;
+                padding: 10mm;
+                box-sizing: border-box;
+                font-size: 12pt;
+                color: #000;
+                background: #fff;
+            }
+            .bill-logo { height: 60px; }
+            .bill-table { page-break-inside: auto; }
+            .bill-table tr { page-break-inside: avoid; page-break-after: auto; }
+            @page { size: A4; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h5>Admin Panel</h5>
+        <a href="${pageContext.request.contextPath}/dashboard"><i class="fas fa-chart-line me-2"></i> Dashboard</a>
+        <a href="${pageContext.request.contextPath}/GetAllServlet"><i class="fas fa-users me-2"></i>User Management</a>
+        <a href="${pageContext.request.contextPath}/stock-manager"><i class="fas fa-boxes me-2"></i>Stock Manager</a>
+        <a href="${pageContext.request.contextPath}/order-management"><i class="fas fa-shopping-cart me-2"></i>Order Management</a>
+        <a href="${pageContext.request.contextPath}/cashier"><i class="fas fa-cash-register me-2"></i>Cashier</a>
+        <a href="${pageContext.request.contextPath}/item-list"><i class="fas fa-box me-2"></i>Item Management</a>
+        <a href="${pageContext.request.contextPath}/customer-management"><i class="fas fa-user-friends me-2"></i>Customer Management</a>
+        <a href="${pageContext.request.contextPath}/supplier-list"><i class="fas fa-truck me-2"></i>Supplier Management</a>
+        <a href="#"><i class="fas fa-arrow-up-right-from-square me-2"></i>Outgoing Products</a>
+        <a href="#"><i class="fas fa-arrow-down-to-line me-2"></i>Purchase Products</a>
+        <a href="#" data-bs-toggle="collapse" data-bs-target="#settingsMenu"><i class="fas fa-gear me-2"></i>Settings</a>
+        <div class="collapse ms-3" id="settingsMenu">
+            <a href="${pageContext.request.contextPath}/profile.jsp" class="d-block mt-1"><i class="fas fa-id-badge me-2"></i>Profile Settings</a>
+            <a href="${pageContext.request.contextPath}/profile.jsp" class="d-block mt-1"><i class="fas fa-lock me-2"></i>Change Password</a>
+            <a href="#" class="d-block mt-1"><i class="fas fa-sliders-h me-2"></i>System Preferences</a>
+        </div>
+    </div>
+
+    <div class="main-content w-100">
+        <nav class="navbar navbar-expand-lg navbar-light px-4">
+            <a class="navbar-brand fw-bold" href="#">Full Trade Support</a>
+            <div class="ms-auto d-flex align-items-center">
+                <span class="me-3">Welcome, <strong><%= session.getAttribute("userName") != null ? session.getAttribute("userName") : "Guest" %></strong></span>
+                <div class="dropdown">
+                    <a class="btn btn-light dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle fa-lg"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile.jsp"><i class="fas fa-id-badge me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cogs me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="${pageContext.request.contextPath}/LogoutServlet"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="dashboard-content">
+            <h2>Cashier Dashboard</h2>
+            <p>Manage orders and print bills below:</p>
+            <% String error = (String) request.getAttribute("error"); %>
+            <% String success = (String) request.getAttribute("success"); %>
+            <% if (error != null) { %>
+                <div class="alert alert-danger"><%= error %></div>
+            <% } %>
+            <% if (success != null) { %>
+                <div class="alert alert-success"><%= success %></div>
+            <% } %>
+
+            <!-- Create New Order -->
+            <button class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#createOrderModal">Create New Order</button>
+
+            <!-- Recent Orders -->
+            <div class="table-container mt-4">
+                <table class="table table-bordered table-striped" id="order-table">
+                    <thead class="custom-header">
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Order Date</th>
+                            <th>Total Amount</th>
+                            <th>Discount</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% List<Order> orderList = (List<Order>) request.getAttribute("orderList"); %>
+                        <% if (orderList != null && !orderList.isEmpty()) { %>
+                            <% for (Order order : orderList) { %>
+                                <tr>
+                                    <td><%= order.getOrderID() %></td>
+                                    <td><%= order.getCustomerName() != null ? order.getCustomerName() : "N/A" %></td>
+                                    <td><%= order.getOrderDate() != null ? order.getOrderDate() : "N/A" %></td>
+                                    <td>Rs.<%= new DecimalFormat("#,##0.00").format(order.getTotalAmount()) %></td>
+                                    <td><%= new DecimalFormat("#,##0.00").format(order.getDiscount()) %>%</td>
+                                    <td>
+                                        <button class="btn btn-outline-primary action-btn" onclick="printBill(<%= order.getOrderID() %>)">
+                                            <i class="fas fa-print"></i> Print Bill
+                                        </button>
+                                        <button class="btn btn-outline-danger action-btn" onclick="downloadBillPDF(<%= order.getOrderID() %>)">
+                                            <i class="fas fa-file-pdf"></i> Export as PDF
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% } %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="6" class="text-center">No orders found.</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Printable Bill Sections (Hidden) -->
+            <% 
+                List<Customer> customerList = (List<Customer>) request.getAttribute("customerList"); 
+            %>
+            <% if (orderList != null && !orderList.isEmpty()) { %>
+                <% for (Order order : orderList) { %>
+                    <div class="bill-content" id="billContent-<%= order.getOrderID() %>">
+                        <input type="hidden" id="orderId-<%= order.getOrderID() %>" value="<%= order.getOrderID() %>" />
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2>Order Invoice</h2>
+                                <p><strong>Customer:</strong> <%= order.getCustomerName() != null ? order.getCustomerName() : "N/A" %></p>
+                                <p><strong>Contact:</strong> 
+                                    <% 
+                                        String customerContact = "N/A";
+                                        if (customerList != null) {
+                                            for (Customer customer : customerList) {
+                                                if (customer.getCustomerID() == order.getCustomerID()) {
+                                                    customerContact = customer.getCustomerContact() != null ? customer.getCustomerContact() : "N/A";
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    %>
+                                    <%= customerContact %>
+                                </p>
+                                <p><strong>Date:</strong> <%= order.getOrderDate() != null ? order.getOrderDate() : "N/A" %></p>
+                            </div>
+                            <div>
+                                <img src="${pageContext.request.contextPath}/images/spare_parts_logo.png" alt="Full Trade Support Logo" class="bill-logo" onerror="this.src='https://via.placeholder.com/80';">
+                                <h5 class="mt-2">Autoparts Pvt Ltd</h5>
+                            </div>
+                        </div>
+                        <table class="table table-bordered table-striped bill-table">
+                            <thead class="custom-header">
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% 
+                                    List<OrderDetail> orderDetails = (List<OrderDetail>) request.getAttribute("orderDetails_" + order.getOrderID());
+                                    Map<Integer, String> itemNames = (Map<Integer, String>) request.getAttribute("itemNames_" + order.getOrderID());
+                                    double subtotal = 0;
+                                    int totalItems = 0;
+                                    if (orderDetails != null && itemNames != null) {
+                                        for (OrderDetail detail : orderDetails) {
+                                            String itemName = itemNames.getOrDefault(detail.getItemID(), "Unknown");
+                                            double itemTotal = detail.getQuantity() * detail.getUnitPrice();
+                                            subtotal += itemTotal;
+                                            totalItems += detail.getQuantity();
+                                %>
+                                    <tr>
+                                        <td><%= itemName %></td>
+                                        <td><%= detail.getQuantity() %></td>
+                                        <td>Rs.<%= new DecimalFormat("#,##0.00").format(detail.getUnitPrice()) %></td>
+                                        <td>Rs.<%= new DecimalFormat("#,##0.00").format(itemTotal) %></td>
+                                    </tr>
+                                <% 
+                                        }
+                                    } else { %>
+                                        <tr>
+                                            <td colspan="4" class="text-center">No items found for this order.</td>
+                                        </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                        <div class="card mt-4 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Invoice Summary</h5>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <p><strong>Total Items:</strong> <%= totalItems %></p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <p><strong>Subtotal:</strong> Rs.<%= new DecimalFormat("#,##0.00").format(subtotal) %></p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <p><strong>Discount:</strong> <%= new DecimalFormat("#,##0.00").format(order.getDiscount()) %>%</p>
+                                    </div>
+                                </div>
+                                <hr>
+                                <h5 class="text-end">Final Total: Rs.<%= new DecimalFormat("#,##0.00").format(order.getTotalAmount()) %></h5>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
+            <% } %>
+
+            <!-- Create Order Modal -->
+            <div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <form action="${pageContext.request.contextPath}/cashier" method="post" class="modal-content" id="createOrderForm">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="createOrderModalLabel">Create New Order</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="customerId" class="form-label">Customer</label>
+                                <select class="form-control" id="customerId" name="customerId" required>
+                                    <option value="">Select Customer</option>
+                                    <% if (customerList != null && !customerList.isEmpty()) { %>
+                                        <% for (Customer customer : customerList) { %>
+                                            <option value="<%= customer.getCustomerID() %>"><%= customer.getCustomerName() %></option>
+                                        <% } %>
+                                    <% } else { %>
+                                        <option value="" disabled>No customers available</option>
+                                    <% } %>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="discount" class="form-label">Discount (%)</label>
+                                <input type="number" step="0.01" class="form-control" id="discount" name="discount" value="0.00" min="0" max="100">
+                            </div>
+                            <div class="mb-3">
+                                <h6>Order Items</h6>
+                                <div id="orderItems">
+                                    <div class="row mb-2">
+                                        <div class="col-5">
+                                            <select class="form-control item-select" name="itemId[]" required>
+                                                <option value="">Select Item</option>
+                                                <% List<Item> itemList = (List<Item>) request.getAttribute("itemList"); %>
+                                                <% if (itemList != null && !itemList.isEmpty()) { %>
+                                                    <% for (Item item : itemList) { %>
+                                                        <option value="<%= item.getItemID() %>" data-price="<%= item.getSellPrice() %>"><%= item.getItemName() %> (Stock: <%= item.getQty() %>) - Rs.<%= new DecimalFormat("#,##0.00").format(item.getSellPrice()) %></option>
+                                                    <% } %>
+                                                <% } else { %>
+                                                    <option value="" disabled>No items available</option>
+                                                <% } %>
+                                            </select>
+                                        </div>
+                                        <div class="col-3">
+                                            <input type="number" class="form-control item-qty" name="quantity[]" min="1" required>
+                                        </div>
+                                        <div class="col-3">
+                                            <input type="text" class="form-control item-price" readonly>
+                                        </div>
+                                        <div class="col-1">
+                                            <button type="button" class="btn btn-danger remove-item"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-secondary mt-2" id="addItem">Add Item</button>
+                            </div>
+                            <div id="formError" class="text-danger" style="display: none;"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Create Order</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Hidden container for printing -->
+            <div class="bill-print-container" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script>
+        if (typeof bootstrap === 'undefined') {
+            document.write('<script src="${pageContext.request.contextPath}/js/bootstrap.bundle.min.js"><\/script>');
+        }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addItemBtn = document.getElementById('addItem');
+            const orderItems = document.getElementById('orderItems');
+            const firstItemRow = orderItems.querySelector('.row').cloneNode(true);
+
+            // Add item row
+            addItemBtn.addEventListener('click', function() {
+                const newRow = firstItemRow.cloneNode(true);
+                newRow.querySelector('.item-select').value = '';
+                newRow.querySelector('.item-qty').value = '';
+                newRow.querySelector('.item-price').value = '';
+                orderItems.appendChild(newRow);
+            });
+
+            // Remove item row
+            orderItems.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-item') || e.target.parentElement.classList.contains('remove-item')) {
+                    const row = e.target.closest('.row');
+                    if (orderItems.querySelectorAll('.row').length > 1) {
+                        row.remove();
+                    } else {
+                        alert('At least one item is required.');
+                    }
+                }
+            });
+
+            // Update item price
+            orderItems.addEventListener('change', function(e) {
+                if (e.target.classList.contains('item-select')) {
+                    const select = e.target;
+                    const priceInput = select.closest('.row').querySelector('.item-price');
+                    const selectedOption = select.options[select.selectedIndex];
+                    const price = selectedOption.dataset.price || '';
+                    priceInput.value = price ? 'Rs.' + parseFloat(price).toFixed(2) : '';
+                }
+            });
+
+            // Validate order form
+            document.getElementById('createOrderForm').addEventListener('submit', function(e) {
+                const quantities = document.querySelectorAll('.item-qty');
+                const items = document.querySelectorAll('.item-select');
+                let error = '';
+
+                for (let i = 0; i < items.length; i++) {
+                    if (!items[i].value) {
+                        error = 'Please select an item.';
+                        break;
+                    }
+                    const qty = parseInt(quantities[i].value) || 0;
+                    const stockText = items[i].options[items[i].selectedIndex].text;
+                    const stockMatch = stockText.match(/Stock: (\d+)/);
+                    const stock = stockMatch ? parseInt(stockMatch[1]) : 0;
+                    if (qty <= 0) {
+                        error = `Quantity for ${stockText.split(' (')[0]} must be positive.`;
+                        break;
+                    }
+                    if (qty > stock) {
+                        error = `Item ${stockText.split(' (')[0]} is out of stock (available: ${stock}).`;
+                        break;
+                    }
+                }
+
+                if (error) {
+                    e.preventDefault();
+                    document.getElementById('formError').textContent = error;
+                    document.getElementById('formError').style.display = 'block';
+                    alert(error);
+                } else {
+                    document.getElementById('formError').style.display = 'none';
+                }
+            });
+        });
+
+        function printBill(orderId) {
+            const billContent = document.getElementById('billContent-' + orderId);
+            if (!billContent) {
+                alert('Bill content not found for Order ID: ' + orderId);
+                return;
+            }
+
+            // Create a temporary container for printing
+            const printContainer = document.querySelector('.bill-print-container');
+            printContainer.innerHTML = '';
+            const clonedBill = billContent.cloneNode(true);
+            printContainer.appendChild(clonedBill);
+
+            window.print();
+            
+            // Clean up after printing
+            printContainer.innerHTML = '';
+        }
+
+        function downloadBillPDF(orderId) {
+            const billContent = document.getElementById('billContent-' + orderId);
+            if (!billContent) {
+                alert('Bill content not found for Order ID: ' + orderId);
+                return;
+            }
+
+            billContent.style.display = 'block';
+            html2pdf().set({
+                margin: 0.5,
+                filename: 'Order_' + orderId + '_Invoice.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            }).from(billContent).save().then(() => {
+                billContent.style.display = 'none';
+            }).catch(error => {
+                console.error('PDF generation failed:', error);
+                alert('Failed to generate PDF. Please try again.');
+                billContent.style.display = 'none';
+            });
+        }
+    </script>
+</body>
+</html>

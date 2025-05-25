@@ -1,0 +1,153 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.util.*" %>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - Update User</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      margin: 0;
+      background-color: #f8f9fa;
+      font-family: Arial, sans-serif;
+    }
+    .sidebar {
+      height: 100vh;
+      width: 240px;
+      background-color: #0d0b56;
+      color: white;
+      position: fixed;
+      padding-top: 20px;
+    }
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      padding: 12px 20px;
+      display: block;
+    }
+    .sidebar a:hover {
+      background-color: #1e1b80;
+    }
+    .main-content {
+      margin-left: 240px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h4 class="text-center mb-4">Admin Panel</h4>
+    <a href="GetAllServlet"><i class="fas fa-users me-2"></i>User Management</a>
+    <a href="#"><i class="fas fa-boxes me-2"></i>Stock Management</a>
+    <a href="#"><i class="fas fa-shopping-cart me-2"></i>Order Management</a>
+    <a href="#"><i class="fas fa-cash-register me-2"></i>Cashier</a>
+    <a href="#"><i class="fas fa-box me-2"></i>Item Management</a>
+    <a href="#"><i class="fas fa-user-friends me-2"></i>Customer Management</a>
+    <a href="supplier-list"><i class="fas fa-truck me-2"></i>Supplier Management</a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4">
+      <a class="navbar-brand fw-bold text-dark" href="#">Full Trade Support</a>
+      <div class="ms-auto d-flex align-items-center">
+        <span class="me-3">Welcome, <strong>Manager</strong></span>
+        <div class="dropdown">
+          <a class="btn btn-light dropdown-toggle" href="#" id="userDropdown" data-bs-toggle="dropdown">
+            <i class="fas fa-user-circle"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#">Profile</a></li>
+            <li><a class="dropdown-item" href="#">Settings</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#">Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="p-5">
+      <div class="mb-4">
+        <h2 class="text-2xl fw-bold text-dark">Update User</h2>
+        <p class="text-muted">Make changes to user details below.</p>
+      </div>
+
+      <%
+        String id = request.getParameter("id");
+        String name = request.getParameter("name");
+        String address = request.getParameter("address");
+        String contactnumber = request.getParameter("contactnumber");
+        String email = request.getParameter("email");
+        String password = request.getParameter("password");
+        String userRole = request.getParameter("userRole");
+      %>
+
+      <div class="bg-white shadow rounded-4 p-5 col-lg-7">
+        <form action="${pageContext.request.contextPath}/UpdateServlet" method="post" class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">ID</label>
+            <input type="text" name="id" value="<%= id %>" readonly class="form-control bg-light" />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Name</label>
+            <input type="text" name="name" value="<%= name %>" required class="form-control" />
+          </div>
+
+          <div class="col-md-12">
+            <label class="form-label">Address</label>
+            <input type="text" name="address" value="<%= address %>" required class="form-control" />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Contact Number</label>
+            <input type="text" name="contactnumber" value="<%= contactnumber %>" required class="form-control" />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" value="<%= email %>" required class="form-control" />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Password</label>
+            <input type="text" name="password" value="<%= password %>" required class="form-control" />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">User Role</label>
+            <select name="userRole" class="form-select" required>
+              <option value="Cashier" <%= "Cashier".equals(userRole) ? "selected" : "" %>>Cashier</option>
+              <option value="Stock Manager" <%= "Stock Manager".equals(userRole) ? "selected" : "" %>>Stock Manager</option>
+              <option value="Admin" <%= "Admin".equals(userRole) ? "selected" : "" %>>Admin</option>
+              <option value="Manager" <%= "Manager".equals(userRole) ? "selected" : "" %>>Manager</option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary w-100 py-2">Update User</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

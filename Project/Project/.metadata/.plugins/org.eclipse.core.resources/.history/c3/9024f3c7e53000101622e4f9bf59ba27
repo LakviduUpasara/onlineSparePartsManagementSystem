@@ -1,0 +1,132 @@
+
+package com.spareparts.servlet;
+
+import com.spareparts.dao.CustomerDAO;
+import com.spareparts.dao.CustomerDAOImpl;
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.dao.ItemDAOImpl;
+import com.spareparts.dao.OrderDAO;
+import com.spareparts.dao.OrderDAOImpl;
+import com.spareparts.model.Order;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
+
+@WebServlet("/dashboard")
+public class DashboardServlet extends HttpServlet {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private static final Logger LOGGER = Logger.getLogger(DashboardServlet.class.getName());
+    private OrderDAO orderDAO;
+    private CustomerDAO customerDAO;
+    private ItemDAO itemDAO;
+
+    @Override
+    public void init() throws ServletException {
+        orderDAO = new OrderDAOImpl();
+        customerDAO = new CustomerDAOImpl();
+        itemDAO = new ItemDAOImpl();
+        LOGGER.info("DashboardServlet initialized successfully");
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            // Total Orders
+            int totalOrders = orderDAO.getAllOrders().size();
+
+            // Total Customers
+            int totalCustomers = customerDAO.getAllCustomers().size();
+
+            // Total Revenue
+            double totalRevenue = 0;
+            List<Order> orders = orderDAO.getAllOrders();
+            for (Order order : orders) {
+                totalRevenue += order.getTotalAmount();
+            }
+
+            // Monthly Order Count (Current Year)
+            Map<String, Integer> monthlyOrderCount = new HashMap<>();
+            for (int i = 1; i <= 12; i++) {
+                monthlyOrderCount.put(getMonthName(i), 0);
+            }
+            try (Connection conn = com.spareparts.util.DBConnection.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT MONTH(OrderDate) AS month, COUNT(*) AS count " +
+                                 "FROM orders WHERE YEAR(OrderDate) = YEAR(CURDATE()) GROUP BY MONTH(OrderDate)")) {
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    int month = rs.getInt("month");
+                    int count = rs.getInt("count");
+                    monthlyOrderCount.put(getMonthName(month), count);
+                }
+            }
+
+            // Monthly and Annual Profit
+            Map<String, Double> monthlyProfit = new HashMap<>();
+            double annualProfit = 0;
+            for (int i = 1; i <= 12; i++) {
+                monthlyProfit.put(getMonthName(i), 0.0);
+            }
+            try (Connection conn = com.spareparts.util.DBConnection.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT MONTH(o.OrderDate) AS month, SUM(od.Quantity * (od.UnitPrice - i.buyPrice)) AS profit " +
+                                 "FROM orders o " +
+                                 "JOIN orderdetails od ON o.OrderID = od.OrderID " +
+                                 "JOIN itemdetails i ON od.ItemID = i.itemID " +
+                                 "WHERE YEAR(o.OrderDate) = YEAR(CURDATE()) " +
+                                 "GROUP BY MONTH(o.OrderDate)")) {
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    int month = rs.getInt("month");
+                    double profit = rs.getDouble("profit");
+                    monthlyProfit.put(getMonthName(month), profit);
+                    annualProfit += profit;
+                }
+            }
+
+            // Set attributes
+            request.setAttribute("totalOrders", totalOrders);
+            request.setAttribute("totalCustomers", totalCustomers);
+            request.setAttribute("totalRevenue", totalRevenue);
+            request.setAttribute("monthlyOrderCount", monthlyOrderCount);
+            request.setAttribute("monthlyProfit", monthlyProfit);
+            request.setAttribute("annualProfit", annualProfit);
+
+            request.getRequestDispatcher("/dashboard.jsp").forward(request, response);
+            
+        } catch (SQLException e) {
+            LOGGER.severe("Database error: " + e.getMessage());
+            request.setAttribute("error", "Database error: " + e.getMessage());			
+            RequestDispatcher dispatcher = request.getRequestDispatcher("${pageContext.request.contextPath}dashboard.jsp"); // Or Dashbords.jsp
+            dispatcher.forward(request, response);
+        } catch (Exception e) {
+            LOGGER.severe("Unexpected error: " + e.getMessage());
+            request.setAttribute("error", "Unexpected error: " + e.getMessage());
+            RequestDispatcher dispatcher = request.getRequestDispatcher("${pageContext.request.contextPath}dashboard.jsp"); // Or ManagerDashbord jsp
+            dispatcher.forward(request, response);
+        }
+    }
+
+    private String getMonthName(int month) {
+        String[] months = {"January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"};
+        return months[month - 1];
+    }
+}

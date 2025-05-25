@@ -1,0 +1,98 @@
+package com.spareparts.servlet;
+
+import com.spareparts.controller.ItemController;
+import com.spareparts.model.Item;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.MultipartConfig;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
+import java.io.IOException;
+import java.sql.SQLException;
+
+@WebServlet("/item-update")
+@MultipartConfig(fileSizeThreshold = 1024 * 1024 * 2, maxFileSize = 1024 * 1024 * 10, maxRequestSize = 1024 * 1024 * 50)
+public class ItemUpdateServlet extends BaseServlet {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private ItemController itemController;
+
+    @Override
+    public void init() {
+        super.init();
+        itemController = new ItemController(itemDAO);
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            int itemID = Integer.parseInt(request.getParameter("id"));
+            Item item = itemController.getItemById(itemID);
+            if (item != null) {
+            	
+                request.setAttribute("item", item);
+                request.getRequestDispatcher("Stock_manager/itemUpdate.jsp").forward(request, response);
+            } else {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Item not found");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+        	
+            int itemID = Integer.parseInt(request.getParameter("itemID"));
+            String itemName = request.getParameter("itemName");
+            String itemBrand = request.getParameter("itemBrand");
+            int qty = Integer.parseInt(request.getParameter("qty"));
+            double buyPrice = Double.parseDouble(request.getParameter("buyPrice"));
+            double sellPrice = Double.parseDouble(request.getParameter("sellPrice"));
+            Part filePart = request.getPart("image");
+            String existingImagePath = request.getParameter("existingImagePath");
+            String applicationPath = request.getServletContext().getRealPath("");
+
+            boolean isTrue = itemController.updateItem(itemID, itemName, itemBrand, qty, buyPrice, sellPrice, filePart, existingImagePath, applicationPath);
+            
+            if (isTrue) {
+            	
+            	response.getWriter().println("<script>alert(' update successfully'); window.location.href='item-list;</script>")
+                response.sendRedirect("item-list");
+            } else {
+                // In rare case if update fails without exception
+                request.setAttribute("messege", "Update failed. Please try again.");
+                Item item = itemController.getItemById(itemID); // Load item data again
+                request.setAttribute("item", item);
+                request.getRequestDispatcher("Stock_manager/itemUpdate.jsp").forward(request, response);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(); // log for debugging
+            request.setAttribute("error", "A database error occurred: " + e.getMessage());
+            try {
+                int itemID = Integer.parseInt(request.getParameter("itemID"));
+                Item item = itemController.getItemById(itemID);
+                request.setAttribute("item", item);
+            } catch (Exception ignored) {}
+            request.getRequestDispatcher("Stock_manager/itemUpdate.jsp").forward(request, response);
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+            request.setAttribute("error", "Validation error: " + e.getMessage());
+            try {
+                int itemID = Integer.parseInt(request.getParameter("itemID"));
+                Item item = itemController.getItemById(itemID);
+                request.setAttribute("item", item);
+            } catch (Exception ignored) {}
+            request.getRequestDispatcher("Stock_manager/itemUpdate.jsp").forward(request, response);
+        }
+    }
+
+    }

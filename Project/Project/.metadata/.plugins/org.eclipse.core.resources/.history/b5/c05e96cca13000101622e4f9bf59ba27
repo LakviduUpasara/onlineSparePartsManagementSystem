@@ -1,0 +1,78 @@
+package com.spareparts.servlet;
+
+import com.spareparts.util.DBConnection;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.MultipartConfig;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
+import java.io.File;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+@WebServlet("/item-add")
+@MultipartConfig(fileSizeThreshold = 1024 * 1024 * 2, // 2MB
+                 maxFileSize = 1024 * 1024 * 10,      // 10MB
+                 maxRequestSize = 1024 * 1024 * 50)   // 50MB
+public class ItemAddServlet extends HttpServlet {
+	
+	 private static final long serialVersionUID = 1L; 
+   
+	 private static final String UPLOAD_DIR = "uploads";
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        String itemName = request.getParameter("itemName");
+        String itemBrand = request.getParameter("itemBrand");
+        int qty = Integer.parseInt(request.getParameter("qty"));
+        double buyPrice = Double.parseDouble(request.getParameter("buyPrice"));
+        double sellPrice = Double.parseDouble(request.getParameter("sellPrice"));
+        Part filePart = request.getPart("image");
+        String imagePath = null;
+
+        // Handle file upload
+        if (filePart != null && filePart.getSize() > 0) {
+            String fileName = extractFileName(filePart);
+            String applicationPath = request.getServletContext().getRealPath("");
+            String uploadPath = applicationPath + File.separator + UPLOAD_DIR;
+            File uploadDir = new File(uploadPath);
+            if (!uploadDir.exists()) uploadDir.mkdir();
+            imagePath = UPLOAD_DIR + File.separator + fileName;
+            filePart.write(uploadPath + File.separator + fileName);
+        }
+
+        // Save to database
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "INSERT INTO itemdetails (itemName, itemBrand, qty, buyPrice, sellPrice, Image_path) VALUES (?, ?, ?, ?, ?, ?)")) {
+            stmt.setString(1, itemName);
+            stmt.setString(2, itemBrand);
+            stmt.setInt(3, qty);
+            stmt.setDouble(4, buyPrice);
+            stmt.setDouble(5, sellPrice);
+            stmt.setString(6, imagePath);
+            stmt.executeUpdate();
+            response.sendRedirect("item-list");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
+        }
+    }
+
+    private String extractFileName(Part part) {
+        String contentDisposition = part.getHeader("content-disposition");
+        String[] items = contentDisposition.split(";");
+        for (String s : items) {
+            if (s.trim().startsWith("filename")) {
+                return System.currentTimeMillis() + "_" + s.substring(s.indexOf("=") + 2, s.length() - 1);
+            }
+        }
+        return "";
+    }
+}

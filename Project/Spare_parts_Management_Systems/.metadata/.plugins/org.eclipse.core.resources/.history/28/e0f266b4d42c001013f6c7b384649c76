@@ -1,0 +1,38 @@
+package com.spareparts.service;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+
+import com.spareparts.util.DBconnection;
+import java.sql.* ;
+
+public class SupplierService {
+
+    public static boolean InsertData(String name, String contact, String address) {
+        boolean isSuccess = false;
+        
+
+
+        try (Connection conn = DBconnection.getConnection()) {
+            String sql = "INSERT INTO Supplier_Details (SupplierName, ContactNumber, Address) VALUES (?, ?, ?)";
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            
+           
+            	
+
+            pstmt.setString(1, name);
+            pstmt.setString(2, contact);
+            pstmt.setString(3, address);
+
+            int rowsInserted = pstmt.executeUpdate();
+            if (rowsInserted > 0) {
+                isSuccess = true;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return isSuccess;
+    }
+}

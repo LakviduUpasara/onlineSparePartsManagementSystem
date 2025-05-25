@@ -1,0 +1,270 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ page errorPage="/error.jsp" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Full Trade Support - Cashier</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+
+    <!-- Font Awesome CSS - only CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" />
+
+    <style>
+      body {
+        display: flex;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      .sidebar {
+        width: 250px;
+        background-color: #001f3f;
+        color: #fff;
+        flex-shrink: 0;
+        padding-top: 1rem;
+        transition: transform 0.3s ease-in-out;
+        position: fixed;
+        height: 100%;
+        z-index: 1000;
+      }
+      .sidebar a {
+        display: block;
+        padding: 12px 20px;
+        color: #fff;
+        text-decoration: none;
+        transition: background 0.3s;
+      }
+      .sidebar a:hover {
+        background-color: #003366;
+      }
+      .sidebar h5 {
+        text-align: center;
+        margin-bottom: 1rem;
+        font-weight: bold;
+      }
+      .main-content {
+        flex-grow: 1;
+        background: #f8f9fa;
+        margin-left: 250px;
+      }
+      .navbar {
+        background-color: #ffffff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .dashboard-content {
+        padding: 2rem;
+      }
+      .custom-header {
+        background-color: #0d0b56;
+        color: white;
+      }
+      .btn-primary {
+        background-color: #0d0b56;
+        border-color: #0d0b56;
+      }
+      .btn-primary:hover {
+        background-color: #003366;
+        border-color: #003366;
+      }
+      .action-btn {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+        min-width: 80px;
+        line-height: 1.5;
+      }
+      .action-btn i {
+        margin-right: 4px;
+      }
+      /* Responsive CSS */
+      @media (max-width: 768px) {
+        .sidebar {
+          transform: translateX(-250px);
+          width: 200px;
+        }
+        .sidebar.active {
+          transform: translateX(0);
+        }
+        .main-content {
+          margin-left: 0;
+        }
+        .navbar {
+          padding: 0.5rem 1rem;
+        }
+        .dashboard-content {
+          padding: 1rem;
+        }
+        .action-btn {
+          font-size: 0.8rem;
+          padding: 5px 10px;
+          min-width: 60px;
+        }
+        .table-container {
+          overflow-x: auto;
+        }
+        table {
+          font-size: 0.85rem;
+        }
+        th,
+        td {
+          padding: 0.5rem;
+        }
+        .navbar-brand {
+          font-size: 1rem;
+        }
+      }
+      @media (max-width: 576px) {
+        .navbar-brand {
+          font-size: 0.9rem;
+        }
+        .action-btn {
+          font-size: 0.75rem;
+          padding: 4px 8px;
+        }
+        table {
+          font-size: 0.8rem;
+        }
+      }
+    </style>
+</head>
+<body>
+    
+    <% String  userRole = (String) session.getAttribute("userRole"); %>
+    <div class="sidebar" id="sidebar">
+        <h5 class="text-center fw-bold">
+            <%= userRole != null ? userRole + " Panel" : "Panel" %>
+        </h5>
+        <% if ("Manager".equals(userRole) || "Admin".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/dashboard">
+                <i class="fas fa-chart-line me-2"></i> Dashboard
+            </a>
+        <% } %>
+        <a href="${pageContext.request.contextPath}/cashier">
+            <i class="fas fa-cash-register me-2"></i> Cashier
+        </a>
+        <% if ("Admin".equals(userRole) || "Manager".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/GetAllServlet">
+                <i class="fas fa-users me-2"></i> User Management
+            </a>
+        <% } %>
+        <% if (!"Cashier".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/item-list">
+                <i class="fas fa-boxes me-2"></i> Stock Management
+            </a>
+        <% } %>
+        <% if ("Stock Manager".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/order-management">
+                <i class="fas fa-shopping-cart me-2"></i> Order Management
+            </a>
+            <a href="${pageContext.request.contextPath}/item-list">
+                <i class="fas fa-box me-2"></i> Item Management
+            </a>
+        <% } %>
+        <% if ("Admin".equals(userRole) || "Manager".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/supplier-list">
+                <i class="fas fa-truck me-2"></i> Supplier Management
+            </a>
+        <% } %>
+        <a href="#" data-bs-toggle="collapse" data-bs-target="#settingsMenu">
+            <i class="fas fa-gear me-2"></i> Settings
+        </a>
+        <div class="collapse ms-3" id="settingsMenu">
+            <a href="${pageContext.request.contextPath}/profile.jsp" class="d-block mt-1">
+                <i class="fas fa-sliders-h me-2"></i> Profile
+            </a>
+        </div>
+    </div>
+
+    <div class="main-content w-100">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white px-4 shadow-sm">
+            <a class="navbar-brand fw-bold" href="#">Autoparts Pvt Ltd</a>
+            <div class="ms-auto d-flex align-items-center">
+                <%= session.getAttribute("Name") != null ? session.getAttribute("Name") : "Guest" %>
+                <div class="dropdown ms-3">
+                    <a class="btn btn-light dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle fa-lg"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile.jsp"><i class="fas fa-id-badge me-2"></i> Profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="${pageContext.request.contextPath}/LogoutServlet"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="dashboard-content">
+            <h2>Cashier</h2>
+            <p>Manage and print order invoices below:</p>
+            <c:if test="${not empty requestScope.error}">
+                <div class="alert alert-danger"><c:out value="${requestScope.error}" /></div>
+            </c:if>
+            <c:if test="${not empty requestScope.success}">
+                <div class="alert alert-success"><c:out value="${requestScope.success}" /></div>
+            </c:if>
+
+            <div class="table-container mt-4">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped" id="order-table">
+                        <thead class="custom-header">
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Order Date</th>
+                                <th>Total Amount</th>
+                                <th>Discount</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <c:choose>
+                                <c:when test="${not empty requestScope.orderList}">
+                                    <c:forEach var="order" items="${requestScope.orderList}">
+                                        <tr>
+                                            <td><c:out value="${order.orderID}" /></td>
+                                            <td><c:out value="${order.customerName != null ? order.customerName : 'N/A'}" /></td>
+                                            <td><c:out value="${order.orderDate != null ? order.orderDate : 'N/A'}" /></td>
+                                            <td>Rs. <fmt:formatNumber value="${order.totalAmount}" pattern="#,##0.00" /></td>
+                                            <td><fmt:formatNumber value="${order.discount}" pattern="#,##0.00" />%</td>
+                                            <td>
+                                                <a href="${pageContext.request.contextPath}/order-details?id=${order.orderID}" class="btn btn-primary action-btn">
+                                                    <i class="fas fa-print"></i> Print
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <tr>
+                                        <td colspan="6" class="text-center">No orders found.</td>
+                                    </tr>
+                                </c:otherwise>
+                            </c:choose>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+   
+    <script>
+        // Sidebar toggle for mobile
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const toggler = document.querySelector('.navbar-toggler');
+            if (toggler) {
+                toggler.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

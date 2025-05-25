@@ -1,0 +1,32 @@
+package cache;
+
+import model.Supplier;
+import java.util.HashMap;
+import java.util.Map;
+
+public class SupplierCache {
+    private static Map<Integer, Supplier> cache = new HashMap<>();
+    private static long lastUpdated = 0;
+    private static final long CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+    public static void put(Supplier supplier) {
+        cache.put(supplier.getSupplierID(), supplier);
+        lastUpdated = System.currentTimeMillis();
+    }
+
+    public static Supplier get(int supplierID) {
+        if (isCacheExpired()) {
+            cache.clear();
+        }
+        return cache.get(supplierID);
+    }
+
+    public static void clear() {
+        cache.clear();
+        lastUpdated = 0;
+    }
+
+    private static boolean isCacheExpired() {
+        return System.currentTimeMillis() - lastUpdated > CACHE_DURATION;
+    }
+}

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Delete resource &apos;Spare_parts_Management_Systems/src/main/webapp/WEB-INF/XML.xml&apos;" deleteContents="false" description="Delete resource &apos;Spare_parts_Management_Systems/src/main/webapp/WEB-INF/XML.xml&apos;" element1="/Spare_parts_Management_Systems/src/main/webapp/WEB-INF/XML.xml" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1746813720578"/>
+</session>

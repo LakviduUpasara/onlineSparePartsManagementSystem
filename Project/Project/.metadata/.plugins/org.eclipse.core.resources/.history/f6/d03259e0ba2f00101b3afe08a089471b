@@ -1,0 +1,94 @@
+package com.spareparts.servlet;
+
+import com.spareparts.model.DetailsModel;
+import com.spareparts.util.DBConnection;
+import java.io.IOException;
+import java.sql.*;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+
+@WebServlet("/LoginServlet")
+public class LoginServlet extends HttpServlet {
+	
+	
+	@Override
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+	        throws ServletException, IOException {
+	    response.sendRedirect("Login.jsp"); // or show login form
+	}
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+    	String email = request.getParameter("email");
+    	String password = request.getParameter("password");
+
+    	if (email == null || password == null) {
+    	    response.sendRedirect("Login.jsp?error=missing");
+    	    return;
+    	}
+
+    	email = email.trim().toLowerCase();
+    	password = password.trim();
+
+
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            con = DBConnection.getConnection();
+            stmt = con.createStatement();
+            
+            
+
+            String sql = "SELECT * FROM UserDetails WHERE Email='" + email + "' AND Password='" + password + "'";
+            rs = stmt.executeQuery(sql);
+
+            if (rs.next()) {
+                int userId = rs.getInt("UserID");
+                String userEmail = rs.getString("Email");
+                String userRole = rs.getString("UserRole"); // Assuming column name is 'role'
+
+                HttpSession session = request.getSession();
+                session.setAttribute("userId", userId);
+                session.setAttribute("userEmail", userEmail);
+                session.setAttribute("userRole", userRole);
+                
+                DetailsModel newdetls =new DetailsModel (rs.getInt("UserID"), rs.getString("Name"), rs.getString("Address"), rs.getString("ContactNumber"), rs.getString("Email"), rs.getString("Password"), rs.getString("UserRole"))
+
+                // Redirect based on role
+                switch (userRole) {
+                    case "Admin":
+                        response.sendRedirect("GetAllServlet");
+                        break;
+                    case "Manager":
+                        response.sendRedirect("supplier-list");
+                        break;
+                    case "Cashier":
+                        response.sendRedirect("cashier_dashboard.jsp");
+                        break;
+                    case "Stock Manager":
+                        response.sendRedirect("stock_dashboard.jsp");
+                        break;
+                    default:
+                        response.sendRedirect("Login.jsp?error=unknown_role");
+                        break;
+                }
+            } else {
+                response.sendRedirect("Login.jsp?error=invalid");
+            }
+
+        } catch (Exception e) {
+        	e.printStackTrace(); // Keep this
+            request.setAttribute("errorMessage", e.getMessage()); // Add this
+            request.getRequestDispatcher("Login.jsp").forward(request, response); // Show error on page
+            return;
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) {}
+            try { if (stmt != null) stmt.close(); } catch (Exception e) {}
+            try { if (con != null) con.close(); } catch (Exception e) {}
+        }
+    }
+}

@@ -1,0 +1,139 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.util.*, com.spareparts.model.Order, com.spareparts.model.OrderDetail, com.spareparts.model.Item, com.spareparts.model.Customer, java.text.DecimalFormat" %>
+<%@ page errorPage="/error.jsp" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Trade Support - Cashier Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* Your custom CSS styles */
+        body { display: flex; min-height: 100vh; overflow-x: hidden; }
+        .sidebar { width: 250px; background-color: #001f3f; color: #fff; padding-top: 1rem; }
+        .sidebar a { color: #fff; display: block; padding: 12px 20px; text-decoration: none; }
+        .sidebar a:hover { background-color: #003366; }
+        .main-content { flex-grow: 1; background: #f8f9fa; }
+        .navbar { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .dashboard-content { padding: 2rem; }
+        .custom-header { background-color: #0d0b56; color: white; }
+        .bill-content { display: none; font-size: 14px; max-width: 210mm; margin: auto; padding: 20px; }
+        .bill-table th, .bill-table td { border: 1px solid #000; padding: 8px; text-align: left; }
+        .bill-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <h5 class="text-center">Admin Panel</h5>
+    <a href="${pageContext.request.contextPath}/dashboard"><i class="fas fa-chart-line me-2"></i> Dashboard</a>
+    <a href="${pageContext.request.contextPath}/GetAllServlet"><i class="fas fa-users me-2"></i>User Management</a>
+    <a href="${pageContext.request.contextPath}/stock-manager"><i class="fas fa-boxes me-2"></i>Stock Manager</a>
+    <a href="${pageContext.request.contextPath}/order-management"><i class="fas fa-shopping-cart me-2"></i>Order Management</a>
+    <a href="${pageContext.request.contextPath}/cashier"><i class="fas fa-cash-register me-2"></i>Cashier</a>
+    <a href="${pageContext.request.contextPath}/item-list"><i class="fas fa-box me-2"></i>Item Management</a>
+    <a href="${pageContext.request.contextPath}/customer-management"><i class="fas fa-user-friends me-2"></i>Customer Management</a>
+    <a href="${pageContext.request.contextPath}/supplier-list"><i class="fas fa-truck me-2"></i>Supplier Management</a>
+</div>
+<div class="main-content">
+    <nav class="navbar px-4">
+        <a class="navbar-brand fw-bold">Full Trade Support</a>
+        <div class="ms-auto">Welcome, <strong><%= session.getAttribute("userName") %></strong></div>
+    </nav>
+    <div class="dashboard-content">
+        <h2>Cashier Dashboard</h2>
+        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#createOrderModal">Create New Order</button>
+
+        <table class="table table-bordered table-striped">
+            <thead class="custom-header">
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Order Date</th>
+                    <th>Total Amount</th>
+                    <th>Discount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% List<Order> orderList = (List<Order>) request.getAttribute("orderList"); %>
+                <% if (orderList != null) {
+                    for (Order order : orderList) { %>
+                        <tr>
+                            <td><%= order.getOrderID() %></td>
+                            <td><%= order.getCustomerName() %></td>
+                            <td><%= order.getOrderDate() %></td>
+                            <td>Rs. <%= new DecimalFormat("#,##0.00").format(order.getTotalAmount()) %></td>
+                            <td><%= new DecimalFormat("#,##0.00").format(order.getDiscount()) %>%</td>
+                            <td>
+                                <button class="btn btn-outline-primary" onclick="printBill(<%= order.getOrderID() %>)">Print</button>
+                               	<div class="d-flex gap-2">
+                        <a href="${pageContext.request.contextPath}/order-details?id=${order.orderID}" class="btn btn-outline-primary action-btn">
+                          <i class="fas fa-print"></i> Print
+                        </a>
+                            </td>
+                        </tr>
+                <% } } else { %>
+                    <tr><td colspan="6" class="text-center">No orders found.</td></tr>
+                <% } %>
+            </tbody>
+        </table>
+
+        <% if (orderList != null) {
+            for (Order order : orderList) {
+                List<OrderDetail> orderDetails = (List<OrderDetail>) request.getAttribute("orderDetails_" + order.getOrderID());
+                Map<Integer, String> itemNames = (Map<Integer, String>) request.getAttribute("itemNames_" + order.getOrderID());
+                double subtotal = 0;
+                int totalItems = 0;
+        %>
+        <div class="bill-content" id="billContent-<%= order.getOrderID() %>">
+            <h2>Order Invoice</h2>
+            <p><strong>Customer:</strong> <%= order.getCustomerName() %></p>
+            <p><strong>Date:</strong> <%= order.getOrderDate() %></p>
+            <table class="bill-table">
+                <thead>
+                    <tr><th>Item Name</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
+                </thead>
+                <tbody>
+                <% if (orderDetails != null) {
+                    for (OrderDetail detail : orderDetails) {
+                        String itemName = itemNames.getOrDefault(detail.getItemID(), "Unknown");
+                        double total = detail.getQuantity() * detail.getUnitPrice();
+                        subtotal += total;
+                        totalItems += detail.getQuantity();
+                %>
+                    <tr>
+                        <td><%= itemName %></td>
+                        <td><%= detail.getQuantity() %></td>
+                        <td>Rs. <%= new DecimalFormat("#,##0.00").format(detail.getUnitPrice()) %></td>
+                        <td>Rs. <%= new DecimalFormat("#,##0.00").format(total) %></td>
+                    </tr>
+                <% } } %>
+                </tbody>
+            </table>
+            <p><strong>Total Items:</strong> <%= totalItems %></p>
+            <p><strong>Subtotal:</strong> Rs. <%= new DecimalFormat("#,##0.00").format(subtotal) %></p>
+            <p><strong>Discount:</strong> <%= new DecimalFormat("#,##0.00").format(order.getDiscount()) %>%</p>
+            <p><strong>Total:</strong> Rs. <%= new DecimalFormat("#,##0.00").format(order.getTotalAmount()) %></p>
+        </div>
+        <% } } %>
+    </div>
+</div>
+<script>
+    function printBill(orderId) {
+        const content = document.getElementById(`billContent-${orderId}`).innerHTML;
+        const win = window.open('', '', 'width=800,height=600');
+        win.document.write(`<html><head><title>Print Invoice</title></head><body>${content}</body></html>`);
+        win.document.close();
+        win.print();
+    }
+
+    function downloadBillPDF(orderId) {
+        const content = document.getElementById(`billContent-${orderId}`);
+        html2pdf().from(content).save(`Order_${orderId}.pdf`);
+    }
+</script>
+</body>
+</html>

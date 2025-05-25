@@ -1,0 +1,180 @@
+package com.spareparts.controller;
+
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.dao.OrderDAO;
+import com.spareparts.model.Item;
+import com.spareparts.model.Order;
+import com.spareparts.model.OrderDetail;
+
+import javax.servlet.http.HttpServletRequest;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.logging.Logger;
+
+public class OrderController {
+    private static final Logger LOGGER = Logger.getLogger(OrderController.class.getName());
+    private final OrderDAO orderDAO;
+    private final ItemDAO itemDAO;
+
+    public OrderController(OrderDAO orderDAO, ItemDAO itemDAO) {
+        this.orderDAO = orderDAO;
+        this.itemDAO = itemDAO;
+    }
+
+    public boolean createOrder(int customerId, List<OrderDetail> orderDetails, double discount, HttpServletRequest request) throws SQLException, IllegalArgumentException {
+        LOGGER.info("Creating new order for customer ID: " + customerId);
+        try {
+            // Validate order details and stock
+            for (OrderDetail detail : orderDetails) {
+                Item item = itemDAO.getItemById(detail.getItemID());
+                if (item == null) {
+                    throw new IllegalArgumentException("Item with ID " + detail.getItemID() + " does not exist");
+                }
+                if (item.getQty() < detail.getQuantity()) {
+                    throw new IllegalArgumentException("Item " + item.getItemName() + " is out of stock");
+                }
+                detail.setUnitPrice(item.getSellPrice());
+                detail.validate();
+            }
+
+            // Calculate total amount
+            double totalAmount = 0;
+            for (OrderDetail detail : orderDetails) {
+                totalAmount += detail.getQuantity() * detail.getUnitPrice();
+            }
+            totalAmount *= (1 - discount / 100);
+
+            // Create order
+            Order order = new Order();
+            order.setCustomerID(customerId);
+            order.setTotalAmount(totalAmount);
+            order.setDiscount(discount);
+            order.validate();
+            int orderId = orderDAO.createOrder(order);
+
+            // Add order details and update item quantities
+            for (OrderDetail detail : orderDetails) {
+                detail.setOrderID(orderId);
+                orderDAO.addOrderDetail(detail);
+                Item item = itemDAO.getItemById(detail.getItemID());
+                item.setQty(item.getQty() - detail.getQuantity());
+                itemDAO.updateItem(item);
+            }
+
+            request.setAttribute("success", "Order created successfully");
+            return true;
+        } catch (IllegalArgumentException e) {
+            request.setAttribute("error", e.getMessage());
+            throw e;
+        } catch (SQLException e) {
+            request.setAttribute("error", "Database error creating order");
+            throw e;
+        }
+    }
+
+    public List<Order> getAllOrders() throws SQLException {
+        return orderDAO.getAllOrders();
+    }
+
+    public Order getOrderById(int orderId) throws SQLException {
+        return orderDAO.getOrderById(orderId);
+    }
+
+    public List<OrderDetail> getOrderDetails(int orderId) throws SQLException {
+        return orderDAO.getOrderDetails(orderId);
+    }
+
+    public boolean updateOrder(int orderId, int customerId, List<OrderDetail> orderDetails, double discount, HttpServletRequest request) throws SQLException, IllegalArgumentException {
+        LOGGER.info("Updating order ID: " + orderId);
+        try {
+            // Validate order details and stock
+            for (OrderDetail detail : orderDetails) {
+                Item item = itemDAO.getItemById(detail.getItemID());
+                if (item == null) {
+                    throw new IllegalArgumentException("Item with ID " + detail.getItemID() + " does not exist");
+                }
+                // Check stock (considering original quantities if updating)
+                int originalQty = getOriginalQuantity(orderId, detail.getItemID());
+                int stockAdjustment = detail.getQuantity() - originalQty;
+                if (stockAdjustment > item.getQty()) {
+                    throw new IllegalArgumentException("Item " + item.getItemName() + " has insufficient stock");
+                }
+                detail.setUnitPrice(item.getSellPrice());
+                detail.validate();
+            }
+
+            // Calculate total amount
+            double totalAmount = 0;
+            for (OrderDetail detail : orderDetails) {
+                totalAmount += detail.getQuantity() * detail.getUnitPrice();
+            }
+            totalAmount *= (1 - discount / 100);
+
+            // Update order
+            Order order = new Order();
+            order.setOrderID(orderId);
+            order.setCustomerID(customerId);
+            order.setTotalAmount(totalAmount);
+            order.setDiscount(discount);
+            order.validate();
+
+            // Restore stock for original order items
+            List<OrderDetail> originalDetails = orderDAO.getOrderDetails(orderId);
+            for (OrderDetail original : originalDetails) {
+                Item item = itemDAO.getItemById(original.getItemID());
+                item.setQty(item.getQty() + original.getQuantity());
+                itemDAO.updateItem(item);
+            }
+
+            // Update order and details
+            orderDAO.updateOrder(order, orderDetails);
+
+            // Deduct stock for new order items
+            for (OrderDetail detail : orderDetails) {
+                Item item = itemDAO.getItemById(detail.getItemID());
+                item.setQty(item.getQty() - detail.getQuantity());
+                itemDAO.updateItem(item);
+            }
+
+            request.setAttribute("success", "Order updated successfully");
+            return true;
+        } catch (IllegalArgumentException e) {
+            request.setAttribute("error", e.getMessage());
+            throw e;
+        } catch (SQLException e) {
+            request.setAttribute("error", "Database error updating order");
+            throw e;
+        }
+    }
+
+    public boolean deleteOrder(int orderId, HttpServletRequest request) throws SQLException {
+        LOGGER.info("Deleting order ID: " + orderId);
+        try {
+            // Restore stock for order items
+            List<OrderDetail> details = orderDAO.getOrderDetails(orderId);
+            for (OrderDetail detail : details) {
+                Item item = itemDAO.getItemById(detail.getItemID());
+                item.setQty(item.getQty() + detail.getQuantity());
+                itemDAO.updateItem(item);
+            }
+
+            // Delete order
+            orderDAO.deleteOrder(orderId);
+            request.setAttribute("success", "Order deleted successfully");
+            return true;
+        } catch (SQLException e) {
+            request.setAttribute("error", "Database error deleting order");
+            throw e;
+        }
+    }
+
+    private int getOriginalQuantity(int orderId, int itemId) throws SQLException {
+        List<OrderDetail> details = orderDAO.getOrderDetails(orderId);
+        for (OrderDetail detail : details) {
+            if (detail.getItemID() == itemId) {
+                return detail.getQuantity();
+            }
+        }
+        return 0;
+    }
+}

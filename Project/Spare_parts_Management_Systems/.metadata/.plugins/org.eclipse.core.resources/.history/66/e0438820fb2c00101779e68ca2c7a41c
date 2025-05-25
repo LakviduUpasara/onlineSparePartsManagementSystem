@@ -1,0 +1,37 @@
+package com.spareparts.service;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+import com.spareparts.model.Supplier;
+import com.spareparts.util.DBconnection;
+
+public class SupplierService {
+
+    public boolean insertData(Supplier supplier) {
+        boolean isSuccess = false;
+
+        String sql = "INSERT INTO Supplier_Details (SupplierName, ContactNumber, Address) VALUES (?, ?, ?)";
+
+        try (Connection conn = DBconnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             
+            pstmt.setString(1, supplier.getName());
+            pstmt.setString(2, supplier.getContact());
+            pstmt.setString(3, supplier.getAddress());
+
+            int rowsInserted = pstmt.executeUpdate();
+            isSuccess = (rowsInserted > 0);
+
+        } catch (SQLException e) {
+            System.err.println("SQL Error during insertData:");
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("Unexpected Error:");
+            e.printStackTrace();
+        }
+
+        return isSuccess;
+    }
+}

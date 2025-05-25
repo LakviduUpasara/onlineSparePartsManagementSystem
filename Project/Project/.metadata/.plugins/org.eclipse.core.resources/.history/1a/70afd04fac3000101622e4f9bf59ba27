@@ -1,0 +1,59 @@
+package com.spareparts.controller;
+
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.model.Item;
+import com.spareparts.util.FileUtil;
+
+import javax.servlet.http.Part;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
+
+public class ItemController {
+    private final ItemDAO itemDAO;
+
+    public ItemController(ItemDAO itemDAO) {
+        this.itemDAO = itemDAO;
+    }
+
+    public List<Item> getAllItems() throws SQLException {
+        return itemDAO.getAllItems();
+    }
+
+    public Item getItemById(int id) throws SQLException {
+        return itemDAO.getItemById(id);
+    }
+
+    public void addItem(String itemName, String itemBrand, int qty, double buyPrice, double sellPrice, Part filePart, String applicationPath) 
+            throws SQLException, IllegalArgumentException, IOException {
+        Item item = new Item();
+        item.setItemName(itemName);
+        item.setItemBrand(itemBrand);
+        item.setQty(qty);
+        item.setBuyPrice(buyPrice);
+        item.setSellPrice(sellPrice);
+        item.setImagePath(FileUtil.saveImage(filePart, applicationPath));
+        item.validate();
+        itemDAO.addItem(item);
+    }
+
+    public void updateItem(int itemID, String itemName, String itemBrand, int qty, double buyPrice, double sellPrice, Part filePart, String existingImagePath, String applicationPath) 
+            throws SQLException, IllegalArgumentException, IOException {
+        Item item = new Item();
+        item.setItemID(itemID);
+        item.setItemName(itemName);
+        item.setItemBrand(itemBrand);
+        item.setQty(qty);
+        item.setBuyPrice(buyPrice);
+        item.setSellPrice(sellPrice);
+        String newImagePath = FileUtil.saveImage(filePart, applicationPath);
+        item.setImagePath(newImagePath != null ? newImagePath : existingImagePath);
+        item.validate();
+        itemDAO.updateItem(item);
+    }
+
+    public void deleteItem(int id) throws SQLException {
+        itemDAO.deleteItem(id);
+    }
+}

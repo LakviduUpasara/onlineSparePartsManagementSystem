@@ -1,0 +1,71 @@
+package com.spareparts.servlet;
+
+import com.spareparts.controller.OrderController;
+import com.spareparts.dao.CustomerDAO;
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.dao.OrderDAO;
+import com.spareparts.model.OrderDetail;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
+@WebServlet(urlPatterns = {"/order-management", "/order-create", "/order-update", "/order-delete", "/order-details"})
+public class OrderServlet extends HttpServlet {
+    private static final Logger LOGGER = Logger.getLogger(OrderServlet.class.getName());
+    private OrderController orderController;
+    private ItemDAO itemDAO;
+    private CustomerDAO customerDAO;
+
+    @Override
+    public void init() throws ServletException {
+        try {
+            orderController = new OrderController(new OrderDAO(), new ItemDAO());
+            itemDAO = new ItemDAO();
+            customerDAO = new CustomerDAO();
+        } catch (Exception e) {
+            LOGGER.severe("Initialization failed: " + e.getMessage());
+            throw new ServletException("Failed to initialize servlet", e);
+        }
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String path = request.getServletPath();
+        response.setContentType("text/html; charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        try {
+            switch (path) {
+                case "/order-management":
+                    request.setAttribute("orderList", orderController.getAllOrders());
+                    request.setAttribute("itemList", itemDAO.getAllItems());
+                    request.setAttribute("customerList", customerDAO.getAllCustomers());
+                    request.getRequestDispatcher("/order-management.jsp").forward(request, response);
+                    break;
+                case "/order-details":
+                case "/order-update":
+                    String orderIdStr = request.getParameter("id");
+                    if (orderIdStr == null || orderIdStr.trim().isEmpty()) {
+                        out.println("<script>alert('Error: Order ID is missing.'); window.location.href='order-management';</script>");
+                        return;
+                    }
+                    int orderId = Integer.parseInt(orderIdStr);
+                    request.setAttribute("order", orderController.getOrderById(orderId));
+                    request.setAttribute("orderDetails", orderController.getOrderDetails(orderId));
+                    request.setAttribute("itemList", itemDAO.getAllItems());
+                    request.setAttribute("customerList", customerDAO.getAllCustomers());
+                    request.getRequestDispatcher(path.equals("/order-details") ? "/order-details.jsp" : "/order-update.jsp").forward(request, response);
+                    break;
+                case "/order-delete":
+                    orderIdStr = request.getParameter("id");
+                    if (orderIdStr == null || orderIdStr.trim().isEmpty()) {
+                        out.println("<script>alert('Error: Order ID is missing.'); window.location

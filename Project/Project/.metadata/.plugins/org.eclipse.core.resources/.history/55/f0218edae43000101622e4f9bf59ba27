@@ -1,0 +1,92 @@
+package com.spareparts.servlet;
+
+import com.spareparts.dao.CustomerDAO;
+import com.spareparts.dao.CustomerDAOImpl;
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.dao.ItemDAOImpl;
+import com.spareparts.dao.OrderDAO;
+import com.spareparts.dao.OrderDAOImpl;
+import com.spareparts.model.Order;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+import java.io.IOException;
+import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.Month;
+import java.util.*;
+import java.util.logging.Logger;
+
+@WebServlet("/dashboard")
+public class DashboardServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = Logger.getLogger(DashboardServlet.class.getName());
+    private OrderDAO orderDAO;
+    private CustomerDAO customerDAO;
+    private ItemDAO itemDAO;
+
+    @Override
+    public void init() throws ServletException {
+        orderDAO = new OrderDAOImpl();
+        customerDAO = new CustomerDAOImpl();
+        itemDAO = new ItemDAOImpl();
+        LOGGER.info("DashboardServlet initialized successfully");
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            // Get all orders
+            List<Order> orders = orderDAO.getAllOrders();
+
+            // Total Orders
+            int totalOrders = orders.size();
+            request.setAttribute("totalOrders", totalOrders);
+
+            // Total Customers
+            int totalCustomers = customerDAO.getAllCustomers().size();
+            request.setAttribute("totalCustomers", totalCustomers);
+
+            // Total Revenue
+            double totalRevenue = orders.stream().mapToDouble(Order::getTotalAmount).sum();
+            request.setAttribute("totalRevenue", totalRevenue);
+
+            // Annual Profit (based on current year)
+            double annualProfit = orders.stream()
+                .filter(o -> o.getOrderDate().getYear() == LocalDate.now().getYear())
+                .mapToDouble(Order::getProfitAmount)
+                .sum();
+            request.setAttribute("annualProfit", annualProfit);
+
+            // Monthly Order Count
+            Map<String, Integer> monthlyOrderCount = new LinkedHashMap<>();
+            for (Month month : Month.values()) {
+                monthlyOrderCount.put(month.name(), 0);
+            }
+            for (Order o : orders) {
+                String month = o.getOrderDate().getMonth().name();
+                monthlyOrderCount.put(month, monthlyOrderCount.get(month) + 1);
+            }
+            request.setAttribute("monthlyOrderCount", monthlyOrderCount);
+
+            // Monthly Profit
+            Map<String, Double> monthlyProfit = new LinkedHashMap<>();
+            for (Month month : Month.values()) {
+                monthlyProfit.put(month.name(), 0.0);
+            }
+            for (Order o : orders) {
+                String month = o.getOrderDate().getMonth().name();
+                monthlyProfit.put(month, monthlyProfit.get(month) + o.getProfitAmount());
+            }
+            request.setAttribute("monthlyProfit", monthlyProfit);
+
+            // Forward to the JSP
+            request.getRequestDispatcher("/Manager/dashboard.jsp").forward(request, response);
+        } catch (Exception e) {
+            LOGGER.severe("Error in DashboardServlet: " + e.getMessage());
+            request.setAttribute("error", "Unable to load dashboard data.");
+            request.getRequestDispatcher("/Manager/dashboard.jsp").forward(request, response);
+        }
+    }
+}

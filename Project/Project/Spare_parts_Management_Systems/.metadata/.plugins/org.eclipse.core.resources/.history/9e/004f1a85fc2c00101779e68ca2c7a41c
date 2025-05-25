@@ -1,0 +1,111 @@
+
+package com.spareparts.dao; 
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import com.spareparts.model.Supplier;
+
+public class SupplierDAO {
+    private String jdbcURL = "jdbc:mysql://localhost:3306/SparePartsManagement_System";
+    private String jdbcUsername = "root";
+    private String jdbcPassword = "Lakvidu@2001";
+
+    private static final String INSERT_SUPPLIER_SQL = "INSERT INTO Supplier_Details (SupplierName, ContactNumber, Address) VALUES (?, ?, ?);";
+    private static final String SELECT_SUPPLIER_BY_ID = "SELECT SupplierID, SupplierName, ContactNumber, Address FROM Supplier_Details WHERE SupplierID = ?";
+    private static final String SELECT_ALL_SUPPLIERS = "SELECT * FROM Supplier_Details";
+    private static final String DELETE_SUPPLIER_SQL = "DELETE FROM Supplier_Details WHERE SupplierID = ?;";
+    private static final String UPDATE_SUPPLIER_SQL = "UPDATE Supplier_Details SET SupplierName = ?, ContactNumber = ?, Address = ? WHERE SupplierID = ?;";
+
+    public SupplierDAO() {}
+
+    protected Connection getConnection() {
+        Connection connection = null;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection(jdbcURL, jdbcUsername, jdbcPassword);
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return connection;
+    }
+
+    public void insertSupplier(Supplier supplier) throws SQLException {
+        try (Connection connection = getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SUPPLIER_SQL)) {
+            preparedStatement.setString(1, supplier.getName());
+            preparedStatement.setString(2, supplier.getContact());
+            preparedStatement.setString(3, supplier.getAddress());
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            printSQLException(e);
+        }
+    }
+
+    public Supplier selectSupplier(int id) {
+        Supplier supplier = null;
+        try (Connection connection = getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(SELECT_SUPPLIER_BY_ID);) {
+            preparedStatement.setInt(1, id);
+            ResultSet rs = preparedStatement.executeQuery();
+
+            while (rs.next()) {
+                String name = rs.getString("SupplierName");
+                String contact = rs.getString("ContactNumber");
+                String address = rs.getString("Address");
+                supplier = new Supplier(id, name, contact, address);
+            }
+        } catch (SQLException e) {
+            printSQLException(e);
+        }
+        return supplier;
+    }
+
+    public List<Supplier> selectAllSuppliers() {
+        List<Supplier> suppliers = new ArrayList<>();
+        try (Connection connection = getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_SUPPLIERS);) {
+            ResultSet rs = preparedStatement.executeQuery();
+
+            while (rs.next()) {
+                int id = rs.getInt("SupplierID");
+                String name = rs.getString("SupplierName");
+                String contact = rs.getString("ContactNumber");
+                String address = rs.getString("Address");
+                suppliers.add(new Supplier(id, name, contact, address));
+            }
+        } catch (SQLException e) {
+            printSQLException(e);
+        }
+        return suppliers;
+    }
+
+    public boolean deleteSupplier(int id) throws SQLException {
+        boolean rowDeleted;
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(DELETE_SUPPLIER_SQL);) {
+            statement.setInt(1, id);
+            rowDeleted = statement.executeUpdate() > 0;
+        }
+        return rowDeleted;
+    }
+
+    public boolean updateSupplier(Supplier supplier) throws SQLException {
+        boolean rowUpdated;
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(UPDATE_SUPPLIER_SQL);) {
+            statement.setString(1, supplier.getName());
+            statement.setString(2, supplier.getContact());
+            statement.setString(3, supplier.getAddress());
+            statement.setInt(4, supplier.getId());
+
+            rowUpdated = statement.executeUpdate() > 0;
+        }
+        return rowUpdated;
+    }
+
+    private void printSQLException(SQLException ex) {
+        for (Throwable e : ex) {
+            e.printStackTrace(System.err);
+        }
+    }
+}

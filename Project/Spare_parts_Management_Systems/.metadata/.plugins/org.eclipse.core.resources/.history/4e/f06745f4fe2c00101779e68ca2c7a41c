@@ -1,0 +1,27 @@
+package com.spareparts.servlet;
+
+import com.spareparts.dao.SupplierDAO;
+import com.spareparts.model.Supplier;
+
+import javax.servlet.*;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+import java.io.IOException;
+
+@WebServlet("/editSupplier")
+public class EditSupplierServlet extends HttpServlet {
+    private SupplierDAO supplierDAO;
+
+    public void init() {
+        supplierDAO = new SupplierDAO();
+    }
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int id = Integer.parseInt(request.getParameter("id"));
+        Supplier existingSupplier = supplierDAO.selectSupplier(id);
+        RequestDispatcher dispatcher = request.getRequestDispatcher("edit-supplier.jsp");
+        request.setAttribute("supplier", existingSupplier);
+        dispatcher.forward(request, response);
+    }
+}

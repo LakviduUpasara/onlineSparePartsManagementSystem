@@ -1,0 +1,74 @@
+// src/com/spareparts/servlet/OrderDetailsServlet.java
+package com.spareparts.servlet;
+
+import com.spareparts.dao.*;
+import com.spareparts.model.*;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
+
+@WebServlet("/order-details")
+public class OrderDetailsServlet extends HttpServlet {
+    private static final Logger LOGGER = Logger.getLogger(OrderDetailsServlet.class.getName());
+    private OrderDAO orderDAO;
+    private CustomerDAO customerDAO;
+    private ItemDAO itemDAO;
+
+    @Override
+    public void init() throws ServletException {
+        orderDAO = new OrderDAOImpl();
+        customerDAO = new CustomerDAOImpl();
+        itemDAO = new ItemDAOImpl();
+        LOGGER.info("OrderDetailsServlet initialized successfully");
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            String orderId = request.getParameter("id");
+            if (orderId == null || orderId.isEmpty()) {
+                request.setAttribute("error", "Order ID is required.");
+                request.getRequestDispatcher("/bill_details.jsp").forward(request, response);
+                return;
+            }
+
+            int id = Integer.parseInt(orderId);
+            Order order = orderDAO.getOrderById(id);
+            if (order == null) {
+                request.setAttribute("error", "Order not found.");
+                request.getRequestDispatcher("/bill_details.jsp").forward(request, response);
+                return;
+            }
+
+            Customer customer = customerDAO.getCustomerById(order.getCustomerID());
+            List<OrderDetail> orderDetails = orderDAO.getOrderDetails(id);
+            Map<Integer, String> itemNames = new HashMap<>();
+            for (OrderDetail detail : orderDetails) {
+                Item item = itemDAO.getItemById(detail.getItemID());
+                itemNames.put(detail.getItemID(), item != null ? item.getItemName() : "Unknown");
+            }
+
+            request.setAttribute("billOrder", order);
+            request.setAttribute("billCustomer", customer);
+            request.setAttribute("billOrderDetails", orderDetails);
+            request.setAttribute("itemNames", itemNames);
+            request.getRequestDispatcher("/bill_details.jsp").forward(request, response);
+        } catch (SQLException e) {
+            LOGGER.severe("Database error: " + e.getMessage());
+            request.setAttribute("error", "Database error: " + e.getMessage());
+            request.getRequestDispatcher("/bill_details.jsp").forward(request, response);
+        } catch (Exception e) {
+            LOGGER.severe("Unexpected error: " + e.getMessage());
+            request.setAttribute("error", "Unexpected error: " + e.getMessage());
+            request.getRequestDispatcher("/bill_details.jsp").forward(request, response);
+        }
+    }
+}

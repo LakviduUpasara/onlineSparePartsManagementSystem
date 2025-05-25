@@ -1,0 +1,119 @@
+// src/com/spareparts/servlet/CashierServlet.java
+package com.spareparts.servlet;
+
+import com.spareparts.controller.OrderController;
+import com.spareparts.dao.CustomerDAO;
+import com.spareparts.dao.CustomerDAOImpl;
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.dao.ItemDAOImpl;
+import com.spareparts.dao.OrderDAO;
+import com.spareparts.dao.OrderDAOImpl;
+import com.spareparts.model.Customer;
+import com.spareparts.model.Item;
+import com.spareparts.model.Order;
+import com.spareparts.model.OrderDetail;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
+@WebServlet("/cashier")
+public class CashierServlet extends HttpServlet {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private static final Logger LOGGER = Logger.getLogger(CashierServlet.class.getName());
+    private OrderController orderController;
+    private CustomerDAO customerDAO;
+    private ItemDAO itemDAO;
+
+    @Override
+    public void init() throws ServletException {
+        OrderDAO orderDAO = new OrderDAOImpl();
+        ItemDAO itemDAO = new ItemDAOImpl();
+        orderController = new OrderController(orderDAO, itemDAO);
+        customerDAO = new CustomerDAOImpl();
+        this.itemDAO = itemDAO;
+        LOGGER.info("CashierServlet initialized successfully");
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            // Fetch all customers
+            List<Customer> customers = customerDAO.getAllCustomers();
+            request.setAttribute("customerList", customers);
+
+            // Fetch all items
+            List<Item> items = itemDAO.getAllItems();
+            request.setAttribute("itemList", items);
+
+            // Fetch recent orders
+            List<Order> recentOrders = orderController.getAllOrders();
+            request.setAttribute("orderList", recentOrders);
+
+            // If viewing bill, fetch order details
+            String orderId = request.getParameter("viewBill");
+            if (orderId != null && !orderId.isEmpty()) {
+                Order order = orderController.getOrderById(Integer.parseInt(orderId));
+                List<OrderDetail> orderDetails = orderController.getOrderDetails(Integer.parseInt(orderId));
+                Customer customer = customerDAO.getCustomerById(order.getCustomerID());
+                request.setAttribute("billOrder", order);
+                request.setAttribute("billOrderDetails", orderDetails);
+                request.setAttribute("billCustomer", customer);
+            }
+
+            request.getRequestDispatcher("/Cashier/cashier.jsp").forward(request, response);
+        } catch (SQLException e) {
+            LOGGER.severe("Database error: " + e.getMessage());
+            request.setAttribute("error", "Database error: " + e.getMessage());
+            request.getRequestDispatcher("/Cashier/cashier.jsp").forward(request, response);
+        } catch (Exception e) {
+            LOGGER.severe("Unexpected error: " + e.getMessage());
+            request.setAttribute("error", "Unexpected error: " + e.getMessage());
+            request.getRequestDispatcher("/Cashier/cashier.jsp").forward(request, response);
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            // Create new order
+            int customerId = Integer.parseInt(request.getParameter("customerId"));
+            String[] itemIds = request.getParameterValues("itemId[]");
+            String[] quantities = request.getParameterValues("quantity[]");
+            double discount = Double.parseDouble(request.getParameter("discount"));
+
+            List<OrderDetail> orderDetails = new ArrayList<>();
+            for (int i = 0; i < itemIds.length; i++) {
+                OrderDetail detail = new OrderDetail();
+                detail.setItemID(Integer.parseInt(itemIds[i]));
+                detail.setQuantity(Integer.parseInt(quantities[i]));
+                orderDetails.add(detail);
+            }
+
+            boolean success = orderController.createOrder(customerId, orderDetails, discount, request);
+            if (success) {
+                response.sendRedirect(request.getContextPath() + "/cashier?success=Order created successfully");
+            } else {
+                doGet(request, response);
+            }
+        } catch (SQLException e) {
+            LOGGER.severe("Database error: " + e.getMessage());
+            request.setAttribute("error", "Database error: " + e.getMessage());
+            doGet(request, response);
+        } catch (Exception e) {
+            LOGGER.severe("Unexpected error: " + e.getMessage());
+            request.setAttribute("error", "Unexpected error: " + e.getMessage());
+            doGet(request, response);
+        }
+    }
+}

@@ -1,0 +1,155 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="javax.servlet.http.Cookie" %>
+<%
+    String savedEmail = "";
+    boolean rememberChecked = false;
+
+    Cookie[] cookies = request.getCookies();
+    if (cookies != null) {
+        for (Cookie cookie : cookies) {
+            if ("userEmail".equals(cookie.getName())) {
+                savedEmail = cookie.getValue();
+                rememberChecked = true;
+            }
+        }
+    }
+
+    String error = request.getParameter("error");
+    String errorMessage = "";
+    if ("invalid".equals(error)) {
+        errorMessage = "Invalid email or password.";
+    } else if ("missing".equals(error)) {
+        errorMessage = "Please enter email and password.";
+    } else if ("unknown_role".equals(error)) {
+        errorMessage = "User role not recognized.";
+    }
+%>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - Spare Parts Management System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+      min-height: 100vh;
+      color: white;
+    }
+    .input-glow:focus {
+      box-shadow: 0 0 6px #3B82F6;
+      border-color: #3B82F6;
+    }
+    .is-invalid {
+      border-color: #dc3545 !important;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm sticky-top">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold text-primary" href="#">
+      Welcome to Spare Parts Management System
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse justify-content-between" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link active text-primary" href="#">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-primary" href="customerLogin.jsp">Login as Customer</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-primary" href="adminLogin.jsp">Login as Administrator</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 90vh;">
+  <div class="card p-4 shadow-lg" style="width: 100%; max-width: 400px; background-color: rgba(255,255,255,0.1); border-radius: 15px;">
+    <div class="text-center mb-4">
+      <svg class="mx-auto mb-2" width="64" height="64" fill="none" stroke="white" stroke-width="2"
+           viewBox="0 0 24 24">
+        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4" />
+        <circle cx="9" cy="21" r="1" />
+        <circle cx="20" cy="21" r="1" />
+        <path d="M12 9v3m0 0l-1-1m1 1l1-1" />
+      </svg>
+      <h3 class="text-white">Spare Parts Management System</h3>
+      <p class="text-light small">Secure login portal</p>
+    </div>
+
+    <form action="LoginServlet" method="post" onsubmit="return validateForm();">
+      <div class="mb-3">
+        <label for="email" class="form-label text-white">Email</label>
+        <input type="email" id="email" name="email"
+               class="form-control input-glow"
+               value="<%= savedEmail %>" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="password" class="form-label text-white">Password</label>
+        <input type="password" id="password" name="password"
+               class="form-control input-glow" required>
+        <% if (!errorMessage.isEmpty()) { %>
+          <div class="text-danger mt-1 small"><%= errorMessage %></div>
+        <% } %>
+      </div>
+
+      <div class="d-grid">
+        <button type="submit" class="btn btn-primary">Sign In</button>
+      </div>
+
+      <div class="d-flex justify-content-between mt-3 small text-light">
+        <div>
+          <input type="checkbox" id="remember" name="remember" <%= rememberChecked ? "checked" : "" %>>
+          <label for="remember">Remember me</label>
+        </div>
+        <a href="#" class="text-info text-decoration-none">Forgot Password?</a>
+      </div>
+
+      <p class="text-center text-light mt-4 small">
+        Don’t have an account? <a href="register.jsp" class="text-info text-decoration-none">Register</a>
+      </p>
+    </form>
+  </div>
+</div>
+
+<script>
+  function validateForm() {
+    const email = document.getElementById("email");
+    const password = document.getElementById("password");
+    const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    let valid = true;
+
+    if (!emailRegex.test(email.value)) {
+      email.classList.add("is-invalid");
+      valid = false;
+    } else {
+      email.classList.remove("is-invalid");
+    }
+
+    if (password.value.length < 6) {
+      password.classList.add("is-invalid");
+      valid = false;
+    } else {
+      password.classList.remove("is-invalid");
+    }
+
+    return valid;
+  }
+</script>
+
+</body>
+</html>

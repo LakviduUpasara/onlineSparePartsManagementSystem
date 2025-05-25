@@ -1,0 +1,50 @@
+package com.spareparts.servlet;
+
+import com.spareparts.controller.DetailsController;
+import com.spareparts.model.DetailsModel;
+import com.spareparts.util.DBConnection;
+import java.io.IOException;
+import java.sql.*;
+import java.util.List;
+
+import javax.servlet.*;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+
+@WebServlet("/UpdateProfileServlet")
+public class UpdateProfileServlet extends HttpServlet {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
+
+        HttpSession session = request.getSession();
+        
+        String id = (String) session.getAttribute("userId").toString();
+        String email = (String) session.getAttribute("userEmail");
+        String userRole = (String) session.getAttribute("userRole");
+        String name = request.getParameter("name");
+        String address = request.getParameter("address");
+        String contactnumber = request.getParameter("contactnumber");
+        String password = request.getParameter("password");
+        
+        // Ensure this is in your form
+        String alertMessage ;
+        boolean isTrue = DetailsController.updatedataLogin(id, name, address, contactnumber, email, password, userRole);
+
+        if (isTrue) {
+           
+             alertMessage = "Data Update Successful";
+            response.getWriter().println("<script>alert('" + alertMessage + "'); window.location.href='GetAllServlet';</script>");
+        } else {
+        	 alertMessage = "Data Update Unsuccessful";
+            response.getWriter().println("<script>alert('" + alertMessage + "'); window.location.href='GetAllServlet';</script>");
+            RequestDispatcher dis2 = request.getRequestDispatcher("GetAllServlet");
+            dis2.forward(request, response);
+        }
+    
+    }
+}

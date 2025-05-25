@@ -1,0 +1,115 @@
+package com.spareparts.servlet;
+
+import com.spareparts.model.DetailsModel;
+import com.spareparts.util.DBConnection;
+import java.io.IOException;
+import java.sql.*;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+
+@WebServlet("/LoginServlet")
+public class LoginServlet extends HttpServlet {
+
+    private static final long serialVersionUID = 1L;
+    
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        response.sendRedirect("Login.jsp");
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String email = request.getParameter("email");
+        String password = request.getParameter("password");
+
+        if (email == null || password == null) {
+            response.sendRedirect("Login.jsp?error=missing");
+            return;
+        }
+
+        email = email.trim().toLowerCase();
+        password = password.trim();
+
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            con = DBConnection.getConnection();
+            stmt = con.createStatement();
+
+            String sql = "SELECT * FROM UserDetails WHERE Email='" + email + "' AND Password='" + password + "'";
+            rs = stmt.executeQuery(sql);
+
+            if (rs.next()) {
+                int userId = rs.getInt("UserID");
+                String name = rs.getString("Name");
+                String address = rs.getString("Address");
+                String contactNumber = rs.getString("ContactNumber");
+                String userEmail = rs.getString("Email");
+                String userPassword = rs.getString("Password");
+                String userRole = rs.getString("UserRole");
+
+                DetailsModel profile = new DetailsModel(userId, name, address, contactNumber, userEmail, userPassword, userRole);
+
+                HttpSession session = request.getSession();
+                session.setAttribute("userId", userId);
+                session.setAttribute("userEmail", userEmail);
+                session.setAttribute("userRole", userRole);
+                session.setAttribute("Name", name) ;
+                session.setAttribute("userProfile", profile);
+
+                // ✅ Handle Remember Me Cookie
+                String remember = request.getParameter("remember");
+                if ("on".equals(remember)) {
+                    Cookie emailCookie = new Cookie("userEmail", userEmail);
+                    emailCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
+                    emailCookie.setPath("/");
+                    response.addCookie(emailCookie);
+                } else {
+                    Cookie emailCookie = new Cookie("userEmail", "");
+                    emailCookie.setMaxAge(0);
+                    emailCookie.setPath("/");
+                    response.addCookie(emailCookie);
+                }
+
+                // Redirect based on role
+                switch (userRole) {
+                    case "Admin":
+                        response.sendRedirect("GetAllServlet");
+                        break;
+                    case "Manager":
+                        response.sendRedirect("dashboard");
+               
+                        break;
+                    case "Cashier":
+                        response.sendRedirect("cashier");
+                        break;
+                    case "Stock Manager":
+                        response.sendRedirect("item-list");
+                        break;
+                    default:
+                    	
+                        response.sendRedirect("Login.jsp?error=unknown_role");
+                        break;
+                }
+            } else {
+                response.sendRedirect("Login.jsp?error=invalid");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            request.setAttribute("errorMessage", e.getMessage());
+            request.getRequestDispatcher("Login.jsp").forward(request, response);
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) {}
+            try { if (stmt != null) stmt.close(); } catch (Exception e) {}
+            try { if (con != null) con.close(); } catch (Exception e) {}
+        }
+    }
+
+}

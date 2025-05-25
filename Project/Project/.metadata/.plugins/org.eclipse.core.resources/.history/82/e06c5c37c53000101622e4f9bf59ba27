@@ -1,0 +1,181 @@
+package com.spareparts.controller;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.http.HttpSession;
+
+import com.spareparts.model.DetailsModel;
+import com.spareparts.util.DBConnection;
+
+public class DetailsController {
+
+    private static boolean isSuccess;
+    private static Connection con = null;
+    private static Statement stmt = null;
+    private static ResultSet rs = null;
+
+    public static boolean insertdata(String name, String address, String contactnumber, String email, String password, String userRole) {
+        isSuccess = false;
+        try {
+            con = DBConnection.getConnection();
+            stmt = con.createStatement();
+
+            String sql = "INSERT INTO UserDetails VALUES (0, '" + name + "', '" + address + "', '" + contactnumber + "', '" + email + "', '" + password + "', '" + userRole + "')";
+            int result = stmt.executeUpdate(sql);
+
+            if (result > 0) {
+                isSuccess = true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return isSuccess;
+    }
+
+    public static List<DetailsModel> getById(String id) {
+        int convertedID = Integer.parseInt(id);
+        ArrayList<DetailsModel> details = new ArrayList<>();
+
+        try {
+            con = DBConnection.getConnection();
+            stmt = con.createStatement();
+
+            String sql = "SELECT * FROM UserDetails WHERE UserID = " + convertedID;
+            rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                DetailsModel detail = new DetailsModel(
+                    rs.getInt("UserID"),
+                    rs.getString("Name"),
+                    rs.getString("Address"),
+                    rs.getString("ContactNumber"),
+                    rs.getString("Email"),
+                    rs.getString("Password"),
+                    rs.getString("UserRole")
+                );
+                details.add(detail);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return details;
+    }
+
+    public static List<DetailsModel> getAllDetail() {
+        ArrayList<DetailsModel> details = new ArrayList<>();
+
+        try {
+            con = DBConnection.getConnection();
+            stmt = con.createStatement();
+
+            String sql = "SELECT * FROM UserDetails";
+            rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                DetailsModel detail = new DetailsModel(
+                    rs.getInt("UserID"),
+                    rs.getString("Name"),
+                    rs.getString("Address"),
+                    rs.getString("ContactNumber"),
+                    rs.getString("Email"),
+                    rs.getString("Password"),
+                    rs.getString("UserRole")
+                );
+                details.add(detail);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return details;
+    }
+
+    public static boolean updatedata(String id, String name, String address, String contactnumber, String email, String password, String userRole) {
+        boolean isSuccess = false;
+
+        try {
+            Connection con = DBConnection.getConnection();
+            Statement stmt = con.createStatement();
+
+            String sql = "UPDATE UserDetails SET "
+                       + "Name='" + name + "', "
+                       + "Address='" + address + "', "
+                       + "ContactNumber='" + contactnumber + "', "
+                       + "Email='" + email + "', "
+                       + "Password='" + password + "', "
+                       + "UserRole='" + userRole + "' "
+                       + "WHERE UserID=" + id;
+
+            int result = stmt.executeUpdate(sql);
+
+            if (result > 0) {
+                isSuccess = true;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return isSuccess;
+    }
+
+
+    public static boolean deletedata(String id) {
+        isSuccess = false;
+        try {
+            con = DBConnection.getConnection();
+            stmt = con.createStatement();
+
+            String sql = "DELETE FROM UserDetails WHERE UserID = " + id;
+            int result = stmt.executeUpdate(sql);
+
+            if (result > 0) {
+                isSuccess = true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return isSuccess;
+    }
+
+	public static boolean updatedataLogin(String id, String name, String address, String contactnumber, String email, String password, String userRole) {
+			
+	        boolean isSuccess = false;
+
+	        try {
+	            Connection con = DBConnection.getConnection();
+	            Statement stmt = con.createStatement();
+
+	            String sql = "UPDATE UserDetails SET "
+	                       + "Name='" + name + "', "
+	                       + "Address='" + address + "', "
+	                       + "ContactNumber='" + contactnumber + "', "
+	                       + "Email='" + email + "', "
+	                       + "Password='" + password + "', "
+	                       + "UserRole='" + userRole + "' "
+	                       + "WHERE UserID=" + id;
+
+	            int result = stmt.executeUpdate(sql);
+
+	            if (result > 0) {
+	                isSuccess = true;
+	            }
+
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        }
+
+	        return isSuccess;
+	}
+    
+    
+    
+    
+ 
+    
+  
+       
+}

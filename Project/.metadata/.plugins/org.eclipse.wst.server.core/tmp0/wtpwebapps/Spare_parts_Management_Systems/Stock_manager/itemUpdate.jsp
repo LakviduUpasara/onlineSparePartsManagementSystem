@@ -1,0 +1,188 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="com.spareparts.model.Item" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Full Trade Support - Update Item</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+        body { display: flex; min-height: 100vh; overflow-x: hidden; }
+        .sidebar { width: 250px; background-color: #001f3f; color: #fff; flex-shrink: 0; padding-top: 1rem; }
+        .sidebar a { display: block; padding: 12px 20px; color: #fff; text-decoration: none; transition: background 0.3s; }
+        .sidebar a:hover { background-color: #003366; }
+        .sidebar h5 { text-align: center; margin-bottom: 1rem; font-weight: bold; }
+        .main-content { flex-grow: 1; background: #f8f9fa; }
+        .navbar { background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .dashboard-content { padding: 2rem; }
+        .custom-header { background-color: #0d0b56; color: white; }
+        .btn-primary { background-color: #0d0b56; border-color: #0d0b56; }
+        .btn-primary:hover { background-color: #003366; border-color: #003366; }
+        .card { border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .chart-container { max-width: 600px; margin: auto; }
+
+        /* ✅ Fix image size */
+        .item-image {
+            max-width: 200px;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+  </style>
+</head>
+<body>
+
+<% String userRole = (String) session.getAttribute("userRole"); %>
+<div class="sidebar" id="sidebar">
+    <h5 class="text-center fw-bold">
+        <%= userRole != null ? userRole + " Panel" : "Panel" %>
+    </h5>
+    <% if ("Manager".equals(userRole) || "Admin".equals(userRole)) { %>
+        <a href="${pageContext.request.contextPath}/dashboard">
+            <i class="fas fa-chart-line me-2"></i> Dashboard
+        </a>
+    <% } %>
+    <a href="${pageContext.request.contextPath}/cashier">
+        <i class="fas fa-cash-register me-2"></i> Cashier
+    </a>
+    <% if ("Admin".equals(userRole) || "Manager".equals(userRole)) { %>
+        <a href="${pageContext.request.contextPath}/GetAllServlet">
+            <i class="fas fa-users me-2"></i> User Management
+        </a>
+    <% } %>
+    <% if (!"Cashier".equals(userRole)) { %>
+        <a href="${pageContext.request.contextPath}/item-list">
+            <i class="fas fa-boxes me-2"></i> Stock Management
+        </a>
+    <% } %>
+    <% if ("Stock Manager".equals(userRole)) { %>
+        <a href="${pageContext.request.contextPath}/order-management">
+            <i class="fas fa-shopping-cart me-2"></i> Order Management
+        </a>
+        <a href="${pageContext.request.contextPath}/item-list">
+            <i class="fas fa-box me-2"></i> Item Management
+        </a>
+    <% } %>
+    <% if ("Admin".equals(userRole) || "Manager".equals(userRole)) { %>
+        <a href="${pageContext.request.contextPath}/supplier-list">
+            <i class="fas fa-truck me-2"></i> Supplier Management
+        </a>
+    <% } %>
+    <a href="#" data-bs-toggle="collapse" data-bs-target="#settingsMenu">
+        <i class="fas fa-gear me-2"></i> Settings
+    </a>
+    <div class="collapse ms-3" id="settingsMenu">
+        <a href="${pageContext.request.contextPath}/profile.jsp" class="d-block mt-1">
+            <i class="fas fa-sliders-h me-2"></i> Profile
+        </a>
+    </div>
+</div>
+
+<div class="main-content w-100">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white px-4 shadow-sm">
+        <a class="navbar-brand fw-bold" href="#">Autoparts Pvt Ltd</a>
+        <div class="ms-auto d-flex align-items-center">
+            <%= session.getAttribute("Name") != null ? session.getAttribute("Name") : "Guest" %>
+            <div class="dropdown ms-3">
+                <a class="btn btn-light dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user-circle fa-lg"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile.jsp"><i class="fas fa-id-badge me-2"></i> Profile</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="${pageContext.request.contextPath}/LogoutServlet"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Update Item Section -->
+    <div class="dashboard-content">
+      <h2>Update Item</h2>
+      <p>Update the item details below:</p>
+      <% String error = (String) request.getAttribute("error"); %>
+      <% if (error != null) { %>
+          <div class="alert alert-danger"><%= error %></div>
+      <% } %>
+      <%
+        Item item = (Item) request.getAttribute("item");
+        if (item != null) {
+      %>
+      
+      <form action="item-update" method="post" enctype="multipart/form-data" class="mt-4" id="updateItemForm">
+        <input type="hidden" name="itemID" value="<%= item.getItemID() %>">
+        <input type="hidden" name="existingImagePath" value="<%= item.getImagePath() != null ? item.getImagePath() : "" %>">
+        <div class="mb-3">
+          <label for="itemName" class="form-label">Item Name</label>
+          <input type="text" class="form-control" id="itemName" name="itemName" value="<%= item.getItemName() %>" required>
+        </div>
+        <div class="mb-3">
+          <label for="itemBrand" class="form-label">Item Brand</label>
+          <input type="text" class="form-control" id="itemBrand" name="itemBrand" value="<%= item.getItemBrand() != null ? item.getItemBrand() : "" %>">
+        </div>
+        <div class="mb-3">
+          <label for="qty" class="form-label">Quantity</label>
+          <input type="number" class="form-control" id="qty" name="qty" value="<%= item.getQty() %>" required min="0">
+        </div>
+        <div class="mb-3">
+          <label for="buyPrice" class="form-label">Buy Price</label>
+          <input type="number" step="0.01" class="form-control" id="buyPrice" name="buyPrice" value="<%= item.getBuyPrice() %>" required min="0">
+        </div>
+        <div class="mb-3">
+          <label for="sellPrice" class="form-label">Sell Price</label>
+          <input type="number" step="0.01" class="form-control" id="sellPrice" name="sellPrice" value="<%= item.getSellPrice() %>" required min="0">
+        </div>
+        <div class="mb-3">
+          <label for="image" class="form-label">Item Image</label>
+          <% if (item.getImagePath() != null && !item.getImagePath().isEmpty()) { %>
+            <div>
+              <img src="${pageContext.request.contextPath}/<%= item.getImagePath() %>" class="item-image" alt="Current Item Image">
+            </div>
+          <% } %>
+          <input type="file" class="form-control" id="image" name="image" accept="image/*">
+        </div>
+        <div id="formError" class="text-danger" style="display: none;"></div>
+        <button type="submit" class="btn btn-primary">Update Item</button>
+        <a href="item-list" class="btn btn-secondary">Cancel</a>
+      </form>
+
+      <script>
+        document.getElementById("updateItemForm").addEventListener("submit", function(event) {
+          const itemName = document.getElementById("itemName").value;
+          const qty = document.getElementById("qty").value;
+          const buyPrice = document.getElementById("buyPrice").value;
+          const sellPrice = document.getElementById("sellPrice").value;
+          const errorDiv = document.getElementById("formError");
+          let error = "";
+
+          if (!itemName.trim()) {
+            error = "Item name is required";
+          } else if (qty < 0) {
+            error = "Quantity cannot be negative";
+          } else if (buyPrice < 0) {
+            error = "Buy price cannot be negative";
+          } else if (sellPrice < 0) {
+            error = "Sell price cannot be negative";
+          }
+
+          if (error) {
+            event.preventDefault();
+            errorDiv.textContent = error;
+            errorDiv.style.display = "block";
+          } else {
+            errorDiv.style.display = "none";
+          }
+        });
+      </script>
+      <% } else { %>
+        <p class="text-danger">Item not found.</p>
+      <% } %>
+    </div>
+
+    <!-- JS Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+package com.spareparts.servelet;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+import com.spareparts.model.*;
+
+
+import com.spareparts.service.SupplierService;
+
+@WebServlet("/SuppierinsertSavelet")
+public class SuppierinsertSavelet extends HttpServlet {
+  
+	
+	 private SupplierService SupplierService;
+
+	    public void init() {
+	    	SupplierService = new SupplierService();
+	    }
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+       
+    	String name = request.getParameter("supplierName");
+        String contact = request.getParameter("contactNumber");
+        String address = request.getParameter("address");
+        
+        Supplier newsup = new Supplier(name ,contact ,address);
+
+        String alertMessage;
+        try {
+        	
+        	SupplierService supplierService = new SupplierService();  // no static call now
+        	boolean isTrue = supplierService.InsertData(newsup);
+
+            
+
+            if (isTrue == true ) {
+                alertMessage = "Data Insert Successful " + name +"" +contact +"  " + address;
+                response.getWriter().println("<script>alert('" + alertMessage + "'); window.location.href='Maneger/maneger_dashbord.jsp';</script>");
+            } else {
+                alertMessage = "Data Insert Unsuccessful " + name +" " +contact +" "+ address;
+                response.getWriter().println("<script>alert('" + alertMessage + "'); window.location.href='Maneger/maneger_dashbord.jsp';</script>");
+            }
+        } catch (Exception e) {
+        	
+            alertMessage = "SQL Error: " + e.getMessage();
+        }
+        
+        response.sendRedirect("listSuppliers");
+
+        
+    }
+}

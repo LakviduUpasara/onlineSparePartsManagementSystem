@@ -1,0 +1,276 @@
+<%-- web/Manager/dashboard.jsp --%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.util.*, java.text.DecimalFormat" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Trade Support - Manager Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="${pageContext.request.contextPath}/css/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" integrity="sha512-A8kq5D4Y6Q3u5nF4Osk6M4s3hZcIdvKS0EXVaM3vKL+xnF3l5g2Z+BlI9yGddALf6nWrXg1WXDxK38g/Mq2bCQA==" crossorigin="anonymous">
+    <link href="${pageContext.request.contextPath}/css/fontawesome.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body { display: flex; min-height: 100vh; overflow-x: hidden; }
+        .sidebar { width: 250px; background-color: #001f3f; color: #fff; flex-shrink: 0; padding-top: 1rem; }
+        .sidebar a { display: block; padding: 12px 20px; color: #fff; text-decoration: none; transition: background 0.3s; }
+        .sidebar a:hover { background-color: #003366; }
+        .sidebar h5 { text-align: center; margin-bottom: 1rem; font-weight: bold; }
+        .main-content { flex-grow: 1; background: #f8f9fa; }
+        .navbar { background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .dashboard-content { padding: 2rem; }
+        .custom-header { background-color: #0d0b56; color: white; }
+        .btn-primary { background-color: #0d0b56; border-color: #0d0b56; }
+        .btn-primary:hover { background-color: #003366; border-color: #003366; }
+        .card { border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .chart-container { max-width: 600px; margin: auto; }
+    </style>
+</head>
+<body>
+ 
+     <%
+        String userRole = (String) session.getAttribute("userRole");
+    %>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <h5 class="text-center fw-bold">
+            <%= userRole != null ? userRole + " Panel" : "Panel" %>
+        </h5>
+        <% if ("Manager".equals(userRole) || "Admin".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/dashboard">
+                <i class="fas fa-chart-line me-2"></i> Dashboard
+            </a>
+        <% } %>
+        <a href="${pageContext.request.contextPath}/cashier">
+            <i class="fas fa-cash-register me-2"></i> Cashier
+        </a>
+        <% if ("Admin".equals(userRole) || "Manager".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/GetAllServlet">
+                <i class="fas fa-users me-2"></i> User Management
+            </a>
+        <% } %>
+        <% if (!"Cashier".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/item-list">
+                <i class="fas fa-boxes me-2"></i> Stock Management
+            </a>
+        <% } %>
+        <% if ("Stock Manager".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/order-management">
+                <i class="fas fa-shopping-cart me-2"></i> Order Management
+            </a>
+            <a href="${pageContext.request.contextPath}/item-list">
+                <i class="fas fa-box me-2"></i> Item Management
+            </a>
+        <% } %>
+        <% if ("Admin".equals(userRole) || "Manager".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/supplier-list">
+                <i class="fas fa-truck me-2"></i> Supplier Management
+            </a>
+        <% } %>
+        <a href="#" data-bs-toggle="collapse" data-bs-target="#settingsMenu">
+            <i class="fas fa-gear me-2"></i> Settings
+        </a>
+        <div class="collapse ms-3" id="settingsMenu">
+            <a href="${pageContext.request.contextPath}/profile.jsp" class="d-block mt-1">
+                <i class="fas fa-sliders-h me-2"></i> Profile
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content w-100">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white px-4 shadow-sm">
+            <button class="navbar-toggler me-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand fw-bold" href="#">Autoparts Pvt Ltd</a>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <div class="ms-auto d-flex align-items-center">
+                    <%= session.getAttribute("Name") != null ? session.getAttribute("Name") : "Guest" %>
+
+                    <div class="dropdown">
+                        <a class="btn btn-light dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle fa-lg"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="${pageContext.request.contextPath}/profile.jsp">
+                                    <i class="fas fa-id-badge me-2"></i> Profile
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="${pageContext.request.contextPath}/LogoutServlet">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="dashboard-content">
+            <h2 class="mb-4">Manager Dashboard</h2>
+            <% String error = (String) request.getAttribute("error"); %>
+            <% if (error != null) { %>
+                <div class="alert alert-danger"><%= error %></div>
+            <% } %>
+
+            <!-- Key Metrics -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card p-3">
+                        <h5 class="card-title">Total Orders</h5>
+                        <p class="card-text text-2xl font-bold text-[#0d0b56]">
+                            <%= request.getAttribute("totalOrders") != null ? request.getAttribute("totalOrders") : 0 %>
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3">
+                        <h5 class="card-title">Total Customers</h5>
+                        <p class="card-text text-2xl font-bold text-[#0d0b56]">
+                            <%= request.getAttribute("totalCustomers") != null ? request.getAttribute("totalCustomers") : 0 %>
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3">
+                        <h5 class="card-title">Total Revenue</h5>
+                        <p class="card-text text-2xl font-bold text-[#0d0b56]">
+                            $<%= request.getAttribute("totalRevenue") != null ? new DecimalFormat("#,##0.00").format(request.getAttribute("totalRevenue")) : "0.00" %>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Annual Profit -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card p-3">
+                        <h5 class="card-title">Annual Profit (Current Year)</h5>
+                        <p class="card-text text-2xl font-bold text-[#0d0b56]">
+                            $<%= request.getAttribute("annualProfit") != null ? new DecimalFormat("#,##0.00").format(request.getAttribute("annualProfit")) : "0.00" %>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card p-3">
+                        <h5 class="card-title">Monthly Order Count</h5>
+                        <div class="chart-container">
+                            <canvas id="orderChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card p-3">
+                        <h5 class="card-title">Monthly Profit</h5>
+                        <div class="chart-container">
+                            <canvas id="profitChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script>
+        if (typeof bootstrap === 'undefined') {
+            document.write('<script src="${pageContext.request.contextPath}/js/bootstrap.bundle.min.js"><\/script>');
+        }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Monthly Order Count Chart
+            const orderData = {
+                labels: [
+                    <% 
+                        Map<String, Integer> monthlyOrderCount = (Map<String, Integer>) request.getAttribute("monthlyOrderCount");
+                        if (monthlyOrderCount != null) {
+                            for (String month : new String[]{"January", "February", "March", "April", "May", "June", 
+                                                             "July", "August", "September", "October", "November", "December"}) {
+                    %>
+                        '<%= month %>',
+                    <% } } %>
+                ],
+                datasets: [{
+                    label: 'Orders',
+                    data: [
+                        <% 
+                            if (monthlyOrderCount != null) {
+                                for (String month : new String[]{"January", "February", "March", "April", "May", "June", 
+                                                                 "July", "August", "September", "October", "November", "December"}) {
+                                    Integer count = monthlyOrderCount.getOrDefault(month, 0);
+                        %>
+                            <%= count %>,
+                        <% } } %>
+                    ],
+                    backgroundColor: '#0d0b56',
+                    borderColor: '#0d0b56',
+                    borderWidth: 1
+                }]
+            };
+            new Chart(document.getElementById('orderChart'), {
+                type: 'bar',
+                data: orderData,
+                options: {
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Number of Orders' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Monthly Profit Chart
+            const profitData = {
+                labels: [
+                    <% 
+                        Map<String, Double> monthlyProfit = (Map<String, Double>) request.getAttribute("monthlyProfit");
+                        if (monthlyProfit != null) {
+                            for (String month : new String[]{"January", "February", "March", "April", "May", "June", 
+                                                             "July", "August", "September", "October", "November", "December"}) {
+                    %>
+                        '<%= month %>',
+                    <% } } %>
+                ],
+                datasets: [{
+                    label: 'Profit ($)',
+                    data: [
+                        <% 
+                            if (monthlyProfit != null) {
+                                for (String month : new String[]{"January", "February", "March", "April", "May", "June", 
+                                                                 "July", "August", "September", "October", "November", "December"}) {
+                                    Double profit = monthlyProfit.getOrDefault(month, 0.0);
+                        %>
+                            <%= profit %>,
+                        <% } } %>
+                    ],
+                    backgroundColor: '#001f3f',
+                    borderColor: '#001f3f',
+                    fill: false,
+                    tension: 0.1
+                }]
+            };
+            new Chart(document.getElementById('profitChart'), {
+                type: 'line',
+                data: profitData,
+                options: {
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Profit ($)' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

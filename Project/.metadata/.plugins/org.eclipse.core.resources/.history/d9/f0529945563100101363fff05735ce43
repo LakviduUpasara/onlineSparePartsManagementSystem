@@ -1,0 +1,202 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.util.*" %>
+<%
+    String userRole = (String) session.getAttribute("userRole");
+    String username = (String) session.getAttribute("username");
+    if (userRole == null || (!userRole.equals("Admin") && !userRole.equals("Cashier") && !userRole.equals("Manager"))) {
+        response.sendRedirect("login.jsp");
+        return;
+    }
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cashier Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            display: flex;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .sidebar {
+            width: 240px;
+            background-color: #0d0b56;
+            color: #fff;
+            padding: 1rem;
+            height: 100vh;
+            position: fixed;
+        }
+
+        .sidebar img {
+            max-width: 100%;
+            height: 80px;
+            margin-bottom: 1rem;
+        }
+
+        .sidebar h5 {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            color: #ffffff;
+        }
+
+        .sidebar .nav a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .sidebar .nav a:hover {
+            background-color: #1a1970;
+            border-radius: 0.25rem;
+        }
+
+        .sidebar-label {
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80px;
+                padding: 1rem 0.5rem;
+            }
+
+            .sidebar h5,
+            .sidebar-label {
+                display: none;
+            }
+        }
+
+        .main-content {
+            margin-left: 240px;
+            padding: 2rem;
+            flex: 1;
+            background-color: #f4f4f4;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 80px;
+            }
+        }
+
+        .navbar {
+            background-color: #fff;
+            padding: 1rem;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .navbar h4 {
+            color: #0d0b56;
+        }
+
+        .invoice-section {
+            margin-top: 2rem;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 1rem;
+            right: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <img src="${pageContext.request.contextPath}/images/logo.png" alt="Logo">
+    <h5><%= userRole != null ? userRole + " Panel" : "Panel" %></h5>
+
+    <div class="nav flex-column text-start px-2">
+        <% if ("Manager".equals(userRole) || "Admin".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/dashboard" class="d-flex align-items-center gap-2 py-2">
+                <i class="fas fa-chart-line"></i><span class="sidebar-label">Dashboard</span>
+            </a>
+        <% } %>
+        <a href="${pageContext.request.contextPath}/cashier" class="d-flex align-items-center gap-2 py-2">
+            <i class="fas fa-cash-register"></i><span class="sidebar-label">Cashier</span>
+        </a>
+        <% if ("Admin".equals(userRole) || "Manager".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/GetAllServlet" class="d-flex align-items-center gap-2 py-2">
+                <i class="fas fa-users"></i><span class="sidebar-label">Users</span>
+            </a>
+        <% } %>
+        <% if (!"Cashier".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/item-list" class="d-flex align-items-center gap-2 py-2">
+                <i class="fas fa-boxes"></i><span class="sidebar-label">Stock</span>
+            </a>
+        <% } %>
+        <% if ("Stock Manager".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/order-management" class="d-flex align-items-center gap-2 py-2">
+                <i class="fas fa-shopping-cart"></i><span class="sidebar-label">Orders</span>
+            </a>
+            <a href="${pageContext.request.contextPath}/item-list" class="d-flex align-items-center gap-2 py-2">
+                <i class="fas fa-box"></i><span class="sidebar-label">Items</span>
+            </a>
+        <% } %>
+        <% if ("Admin".equals(userRole) || "Manager".equals(userRole)) { %>
+            <a href="${pageContext.request.contextPath}/supplier-list" class="d-flex align-items-center gap-2 py-2">
+                <i class="fas fa-truck"></i><span class="sidebar-label">Suppliers</span>
+            </a>
+        <% } %>
+        <a href="#settingsMenu" data-bs-toggle="collapse" class="d-flex align-items-center gap-2 py-2">
+            <i class="fas fa-gear"></i><span class="sidebar-label">Settings</span>
+        </a>
+        <div class="collapse" id="settingsMenu">
+            <a href="${pageContext.request.contextPath}/profile.jsp" class="d-flex align-items-center gap-2 py-2 ps-4">
+                <i class="fas fa-sliders-h"></i><span class="sidebar-label">Profile</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4>Welcome <%= username %>!</h4>
+        <a href="logout" class="btn btn-outline-danger logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </div>
+
+    <!-- Content Area: Invoices / Billing -->
+    <div class="invoice-section">
+        <h5>Invoice History</h5>
+        <!-- Future: Replace with actual dynamic invoice table -->
+        <table class="table table-bordered mt-3">
+            <thead class="table-light">
+                <tr>
+                    <th>Invoice ID</th>
+                    <th>Customer</th>
+                    <th>Total</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Placeholder rows -->
+                <tr>
+                    <td>INV-001</td>
+                    <td>John Doe</td>
+                    <td>$120.00</td>
+                    <td>2025-05-15</td>
+                    <td>
+                        <a href="#" class="btn btn-sm btn-primary"><i class="fas fa-print"></i> Print</a>
+                    </td>
+                </tr>
+                <!-- Additional rows will be added dynamically -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

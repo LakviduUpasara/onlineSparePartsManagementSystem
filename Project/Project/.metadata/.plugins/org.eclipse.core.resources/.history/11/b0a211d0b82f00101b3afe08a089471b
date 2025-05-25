@@ -1,0 +1,49 @@
+package com.spareparts.servlet;
+
+import com.spareparts.util.DBConnection;
+import java.io.IOException;
+import java.sql.*;
+import javax.servlet.*;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+
+@WebServlet("/UpdateProfileServlet")
+public class UpdateProfileServlet extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
+
+        HttpSession session = request.getSession();
+        String email = (String) session.getAttribute("userEmail");
+
+        String name = request.getParameter("name");
+        String address = request.getParameter("address");
+        String contact = request.getParameter("contact");
+        String password = request.getParameter("password");
+
+        Connection con = null;
+        PreparedStatement ps = null;
+
+        try {
+            con = DBConnection.getConnection();
+            String sql = "UPDATE UserDetails SET Name=?, Address=?, ContactNumber=?, Password=? WHERE Email=?";
+            ps = con.prepareStatement(sql);
+
+            ps.setString(1, name);
+            ps.setString(2, address);
+            ps.setString(3, contact);
+            ps.setString(4, password);
+            ps.setString(5, email);
+
+            int updated = ps.executeUpdate();
+
+            request.setAttribute("message", updated > 0 ? "Profile updated." : "No update made.");
+            request.getRequestDispatcher("profile.jsp").forward(request, response);
+        } catch (Exception e) {
+            request.setAttribute("message", "Error: " + e.getMessage());
+            request.getRequestDispatcher("profile.jsp").forward(request, response);
+        } finally {
+            try { if (ps != null) ps.close(); } catch (Exception e) {}
+            try { if (con != null) con.close(); } catch (Exception e) {}
+        }
+    }
+}

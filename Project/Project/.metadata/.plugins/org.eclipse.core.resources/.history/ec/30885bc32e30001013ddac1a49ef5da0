@@ -1,0 +1,27 @@
+<!-- Nav.jsp (Only include the navigation bar HTML) -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm px-4">
+  <a class="navbar-brand fw-bold text-primary" href="#">Spare Parts Management</a>
+  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  
+  <div class="collapse navbar-collapse" id="navbarNav">
+    <ul class="navbar-nav me-auto">
+      <li class="nav-item">
+        <a class="nav-link active" href="home.jsp">Home</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="login-customer.jsp">Login as Customer</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="login-admin.jsp">Login as Administrator</a>
+      </li>
+    </ul>
+    <span class="navbar-text text-muted me-4">
+      Welcome to Spare Parts Management System
+    </span>
+    <span class="navbar-text text-dark fw-semibold">
+      Vision: Creating Efficient Spare Parts Management
+    </span>
+  </div>
+</nav>

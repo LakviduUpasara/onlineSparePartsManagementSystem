@@ -1,0 +1,59 @@
+<%@ page import="java.util.*, com.spareparts.controller.DetailsController, com.spareparts.model.DetailsModel" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<html>
+<head>
+    <title>Item Details</title>
+    <style>
+        body { font-family: Arial; background-color: #f9f9f9; margin: 20px; }
+        table, th, td { border: 1px solid #ddd; border-collapse: collapse; padding: 10px; }
+        table { width: 100%; background-color: #fff; }
+        th { background-color: #0d0b56; color: white; }
+        h2 { color: #0d0b56; }
+        form { margin-bottom: 20px; background: #fff; padding: 20px; border-radius: 10px; }
+        input[type=text], input[type=number] { width: 100%; padding: 8px; margin: 5px 0; }
+        input[type=submit] { background-color: #0d0b56; color: white; border: none; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+
+<h2>Item Entry Form</h2>
+<form action="ItemServlet" method="post">
+    <input type="hidden" name="action" value="<%= request.getParameter("edit") != null ? "update" : "insert" %>">
+    <input type="hidden" name="item_id" value="<%= request.getParameter("edit") != null ? DetailsController.getItemById(Integer.parseInt(request.getParameter("edit"))).getItem_id() : "" %>">
+
+    Item Name: <input type="text" name="item_name" required value="<%= request.getParameter("edit") != null ? DetailsController.getItemById(Integer.parseInt(request.getParameter("edit"))).getItem_name() : "" %>"><br>
+    Brand: <input type="text" name="item_brand" value="<%= request.getParameter("edit") != null ? DetailsController.getItemById(Integer.parseInt(request.getParameter("edit"))).getItem_brand() : "" %>"><br>
+    Quantity: <input type="number" name="qty" required value="<%= request.getParameter("edit") != null ? DetailsController.getItemById(Integer.parseInt(request.getParameter("edit"))).getQty() : "" %>"><br>
+    Buy Price: <input type="number" step="0.01" name="buy_price" required value="<%= request.getParameter("edit") != null ? DetailsController.getItemById(Integer.parseInt(request.getParameter("edit"))).getBuy_price() : "" %>"><br>
+    Sell Price: <input type="number" step="0.01" name="sell_price" required value="<%= request.getParameter("edit") != null ? DetailsController.getItemById(Integer.parseInt(request.getParameter("edit"))).getSell_price() : "" %>"><br>
+    Image Path: <input type="text" name="image_path" value="<%= request.getParameter("edit") != null ? DetailsController.getItemById(Integer.parseInt(request.getParameter("edit"))).getImage_path() : "" %>"><br>
+    <input type="submit" value="<%= request.getParameter("edit") != null ? "Update" : "Add" %> Item">
+</form>
+
+<h2>Item List</h2>
+<table>
+    <tr>
+        <th>ID</th><th>Name</th><th>Brand</th><th>Qty</th><th>Buy Price</th><th>Sell Price</th><th>Image</th><th>Actions</th>
+    </tr>
+    <%
+        List<DetailsModel> items = DetailsController.getAllItems();
+        for (DetailsModel item : items) {
+    %>
+    <tr>
+        <td><%= item.getItem_id() %></td>
+        <td><%= item.getItem_name() %></td>
+        <td><%= item.getItem_brand() %></td>
+        <td><%= item.getQty() %></td>
+        <td><%= item.getBuy_price() %></td>
+        <td><%= item.getSell_price() %></td>
+        <td><img src="<%= item.getImage_path() %>" width="50"></td>
+        <td>
+            <a href="itemdetails.jsp?edit=<%= item.getItem_id() %>">Edit</a> |
+            <a href="ItemServlet?action=delete&id=<%= item.getItem_id() %>">Delete</a>
+        </td>
+    </tr>
+    <% } %>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,34 @@
+package com.spareparts.util;
+
+import javax.servlet.http.Part;
+import java.io.File;
+import java.io.IOException;
+
+public class FileUtil {
+    private static final String UPLOAD_DIR = "Uploads";
+
+    public static String saveImage(Part filePart, String applicationPath) throws IOException {
+        if (filePart == null || filePart.getSize() == 0) {
+            return null;
+        }
+        String fileName = System.currentTimeMillis() + "_" + extractFileName(filePart);
+        String uploadPath = applicationPath + File.separator + UPLOAD_DIR;
+        File uploadDir = new File(uploadPath);
+        if (!uploadDir.exists()) {
+            uploadDir.mkdir();
+        }
+        filePart.write(uploadPath + File.separator + fileName);
+        return UPLOAD_DIR + File.separator + fileName;
+    }
+
+    private static String extractFileName(Part part) {
+        String contentDisposition = part.getHeader("content-disposition");
+        String[] items = contentDisposition.split(";");
+        for (String s : items) {
+            if (s.trim().startsWith("filename")) {
+                return s.substring(s.indexOf("=") + 2, s.length() - 1);
+            }
+        }
+        return "";
+    }
+}

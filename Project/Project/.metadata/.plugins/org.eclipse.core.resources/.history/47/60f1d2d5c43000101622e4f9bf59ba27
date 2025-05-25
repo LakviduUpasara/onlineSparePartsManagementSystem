@@ -1,0 +1,202 @@
+package com.spareparts.dao;
+
+import com.spareparts.model.Order;
+import com.spareparts.model.OrderDetail;
+import com.spareparts.util.DatabaseUtil;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class OrderDAO {
+    public int createOrder(Order order) throws SQLException {
+        String sql = "INSERT INTO Orders (CustomerID, TotalAmount, Discount) VALUES (?, ?, ?)";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(1, order.getCustomerID());
+            stmt.setDouble(2, order.getTotalAmount());
+            stmt.setDouble(3, order.getDiscount());
+            stmt.executeUpdate();
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        throw new SQLException("Failed to create order");
+    }
+
+    public void addOrderDetail(OrderDetail detail) throws SQLException {
+        String sql = "INSERT INTO OrderDetails (OrderID, ItemID, Quantity, UnitPrice) VALUES (?, ?, ?, ?)";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, detail.getOrderID());
+            stmt.setInt(2, detail.getItemID());
+            stmt.setInt(3, detail.getQuantity());
+            stmt.setDouble(4, detail.getUnitPrice());
+            stmt.executeUpdate();
+        }
+    }
+
+    public List<Order> getAllOrders() throws SQLException {
+        List<Order> orders = new ArrayList<>();
+        String sql = "SELECT o.*, c.CustomerName FROM Orders o LEFT JOIN CustomerDetails c ON o.CustomerID = c.CustomerID";
+        try (Connection conn = DatabaseUtil.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                Order order = new Order();
+                order.setOrderID(rs.getInt("OrderID"));
+                order.setCustomerID(rs.getInt("CustomerID"));
+                order.setOrderDate(rs.getTimestamp("OrderDate"));
+                order.setTotalAmount(rs.getDouble("TotalAmount"));
+                order.setDiscount(rs.getDouble("Discount"));
+                order.setCustomerName(rs.getString("CustomerName"));
+                orders.add(order);
+            }
+        }
+        return orders;
+    }
+
+    public Order getOrderById(int orderId) throws SQLException {
+        String sql = "SELECT o.*, c.CustomerName FROM Orders o LEFT JOIN CustomerDetails c ON o.CustomerID = c.CustomerID WHERE o.OrderID = ?";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, orderId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Order order = new Order();
+                    order.setOrderID(rs.getInt("OrderID"));
+                    order.setCustomerID(rs.getInt("CustomerID"));
+                    order.setOrderDate(rs.getTimestamp("OrderDate"));
+                    order.setTotalAmount(rs.getDouble("TotalAmount"));
+                    order.setDiscount(rs.getDouble("Discount"));
+                    order.setCustomerName(rs.getString("CustomerName"));
+                    return order;
+                }
+            }
+        }
+        return null;
+    }
+
+    public List<OrderDetail> getOrderDetails(int orderId) throws SQLException {
+        List<OrderDetail> details = new ArrayList<>();
+        String sql = "SELECT od.*, i.itemName FROM OrderDetails od JOIN ItemDetails i ON od.ItemID = i.itemID WHERE od.OrderID = ?";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, orderId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    OrderDetail detail = new OrderDetail();
+                    detail.setOrderDetailID(rs.getInt("OrderDetailID"));
+                    detail.setOrderID(rs.getInt("OrderID"));
+                    detail.setItemID(rs.getInt("ItemID"));
+                    detail.setQuantity(rs.getInt("Quantity"));
+                    detail.setUnitPrice(rs.getDouble("UnitPrice"));
+                    detail.setItemName(rs.getString("itemName"));
+                    details.add(detail);
+                }
+            }
+        }
+        return details;
+    }
+
+    public void updateOrder(Order order, List<OrderDetail> orderDetails) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = DatabaseUtil.getConnection();
+            conn.setAutoCommit(false);
+
+            // Update Orders table
+            String updateOrderSql = "UPDATE Orders SET CustomerID = ?, TotalAmount = ?, Discount = ? WHERE OrderID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(updateOrderSql)) {
+                stmt.setInt(1, order.getCustomerID());
+                stmt.setDouble(2, order.getTotalAmount());
+                stmt.setDouble(3, order.getDiscount());
+                stmt.setInt(4, order.getOrderID());
+                stmt.executeUpdate();
+            }
+
+            // Delete existing order details
+            String deleteDetailsSql = "DELETE FROM OrderDetails WHERE OrderID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(deleteDetailsSql)) {
+                stmt.setInt(1, order.getOrderID());
+                stmt.executeUpdate();
+            }
+
+            // Insert new order details
+            String insertDetailSql = "INSERT INTO OrderDetails (OrderID, ItemID, Quantity, UnitPrice) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(insertDetailSql)) {
+                for (OrderDetail detail : orderDetails) {
+                    stmt.setInt(1, order.getOrderID());
+                    stmt.setInt(2, detail.getItemID());
+                    stmt.setInt(3, detail.getQuantity());
+                    stmt.setDouble(4, detail.getUnitPrice());
+                    stmt.executeUpdate();
+                }
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    throw new SQLException("Rollback failed: " + ex.getMessage());
+                }
+            }
+            throw e;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    throw new SQLException("Failed to close connection: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    public void deleteOrder(int orderId) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = DatabaseUtil.getConnection();
+            conn.setAutoCommit(false);
+
+            // Delete order details
+            String deleteDetailsSql = "DELETE FROM OrderDetails WHERE OrderID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(deleteDetailsSql)) {
+                stmt.setInt(1, orderId);
+                stmt.executeUpdate();
+            }
+
+            // Delete order
+            String deleteOrderSql = "DELETE FROM Orders WHERE OrderID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(deleteOrderSql)) {
+                stmt.setInt(1, orderId);
+                stmt.executeUpdate();
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    throw new SQLException("Rollback failed: " + ex.getMessage());
+                }
+            }
+            throw e;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    throw new SQLException("Failed to close connection: " + e.getMessage());
+                }
+            }
+        }
+    }
+}

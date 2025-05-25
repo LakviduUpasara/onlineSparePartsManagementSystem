@@ -1,0 +1,36 @@
+package com.spareparts.servlet;
+
+import com.spareparts.dao.SupplierDAO;
+import com.spareparts.model.Supplier;
+
+import javax.servlet.*;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+import java.io.IOException;
+import java.sql.SQLException;
+
+@WebServlet("/addSupplier")
+public class AddSupplierServlet extends HttpServlet {
+    
+	
+	private SupplierDAO supplierDAO;
+
+    public void init() {
+        supplierDAO = new SupplierDAO();
+    }
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String name = request.getParameter("name");
+        String contact = request.getParameter("contact");
+        String address = request.getParameter("address");
+        
+        Supplier newSupplier = new Supplier(name, contact, address);
+        try {
+            supplierDAO.insertSupplier(newSupplier);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        response.sendRedirect("listSuppliers");
+    }
+}

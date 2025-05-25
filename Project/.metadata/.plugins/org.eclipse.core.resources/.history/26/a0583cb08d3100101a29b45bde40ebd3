@@ -1,0 +1,117 @@
+package com.spareparts.controller;
+
+import com.spareparts.dao.ItemDAO;
+import com.spareparts.model.Item;
+import com.spareparts.util.FileUtil;
+
+import javax.servlet.http.Part;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.logging.Logger;
+
+public class ItemController {
+    private static final Logger LOGGER = Logger.getLogger(ItemController.class.getName());
+
+    private final ItemDAO itemDAO;
+
+    public ItemController(ItemDAO itemDAO) {
+        this.itemDAO = itemDAO;
+    }
+
+    public List<Item> getAllItems() throws SQLException {
+        return itemDAO.getAllItems();
+    }
+
+    public Item getItemById(int id) throws SQLException {
+        return itemDAO.getItemById(id);
+    }
+
+    public boolean addItem(String itemName, String itemBrand, int qty, double buyPrice, double sellPrice, Part filePart, String applicationPath) 
+            throws SQLException, IllegalArgumentException, IOException {
+        Item item = new Item();
+        item.setItemName(itemName);
+        item.setItemBrand(itemBrand);
+        item.setQty(qty);
+        item.setBuyPrice(buyPrice);
+        item.setSellPrice(sellPrice);
+        item.setImagePath(FileUtil.saveImage(filePart, applicationPath));
+        item.validate();
+        itemDAO.addItem(item);
+    }
+
+    public boolean updateItem(int itemID, String itemName, String itemBrand, int qty, double buyPrice, double sellPrice, Part filePart, String existingImagePath, String applicationPath) 
+            throws SQLException, IllegalArgumentException, IOException {
+        LOGGER.info("Updating item with ID: " + itemID);
+
+        // Validate inputs
+        if (itemName == null || itemName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Item name is required");
+        }
+        if (qty < 0) {
+            throw new IllegalArgumentException("Quantity cannot be negative");
+        }
+        if (buyPrice < 0 || sellPrice < 0) {
+            throw new IllegalArgumentException("Prices cannot be negative");
+        }
+
+        Item item = new Item();
+        item.setItemID(itemID);
+        item.setItemName(itemName);
+        item.setItemBrand(itemBrand);
+        item.setQty(qty);
+        item.setBuyPrice(buyPrice);
+        item.setSellPrice(sellPrice);
+
+        // Handle image upload
+        String newImagePath = null;
+        if (filePart != null && filePart.getSize() > 0) {
+            try {
+                newImagePath = FileUtil.saveImage(filePart, applicationPath);
+            } catch (IOException e) {
+                LOGGER.severe("Failed to save image: " + e.getMessage());
+                throw new IOException("Failed to save image", e);
+            }
+        }
+        
+        item.setImagePath(newImagePath != null ? newImagePath : existingImagePath);
+
+        // Validate item
+        item.validate();
+
+        // Update in database
+        try {
+        	
+            itemDAO.updateItem(item);
+            
+            LOGGER.info("Item updated successfully: " + itemID);
+            return true;
+            
+        } catch (SQLException e) {
+        	
+            LOGGER.severe("Database error updating item: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    public boolean deleteItem(int id) throws SQLException {
+        
+    	
+        // Delete in database
+        try {
+        	
+        	itemDAO.deleteItem(id);
+            
+           // LOGGER.info("Item updated successfully: " + id);
+            return true;
+            
+        } catch (SQLException e) {
+        	
+            LOGGER.severe("Database error updating item: " + e.getMessage());
+            throw e;
+        }
+    	
+        
+        
+    }
+}
